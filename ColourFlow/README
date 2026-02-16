@@ -1,0 +1,36 @@
+GENERAL OVERVIEW
+
+The purpose of this ColourFlow folder is (of course) to store proper colour flows for the generation. 
+
+I made this as an overarching folder so that it is easy to change between MadGraph and other generator colour flows if one desires, although I have only been using MadGrarph so this embedded structure is not really required, it's just here as an option. 
+
+Within the MadGraph folder there are our main processes of 2->2 up to 2->5. 
+Within these are folders for each of the main 2->2 subprocesses we consider (i.e. the tree-level QCD collisions we have coded) 
+Then, lastly, within those are the possible end product states that one can get from tree-level collision 
+
+
+2->4 EXAMPLE 
+
+We go into the MadGraph folder and want to look at 2->4 processes. In there we see that each of the tree-level QCD elements have their own folder. We are interested in the gg->gg process so we go into that folder and see that there are four possible endstates for 2->4 that start with gg->gg. 
+
+If we look at the gg_gggg.txt case (that is, gg->gggg) we see that each line represents a unqiue colour flow orientation for that end state. 
+
+The top line says how many unique colour flows MadGraph saw in its generation of 10000 events, the "seen" column is how many times that specific orientation was seen, and the final area is the colour flow itself with the first two entries being the incoming colours and the final four being the outgoing colours. 
+
+This is an arbitrary structure but the one that the generator uses to assign proper colour flows to an event and the LHE files
+
+
+NAMING CONVENTION 
+
+g = gluon 
+
+q = quark 
+qx = qbar (anti-q)
+
+qp = new quark that isn't q
+qpx = qpbar (anti qp-quark)
+
+o = new quark that isnt q or p 
+ox = obar (anti o-quark)
+
+_ = ->

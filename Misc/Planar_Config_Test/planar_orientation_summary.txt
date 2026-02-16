@@ -1,0 +1,8 @@
+total_events 5000
+lead_collinear_others_all_within_tol 0
+lead_back_to_back_others_all_within_tol 17
+planar_approx_90 6
+hemisphere_3_same_as_lead 0
+hemisphere_2_same_as_lead 0
+hemisphere_1_same_as_lead 2326
+hemisphere_0_same_as_lead 2674

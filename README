@@ -1,0 +1,13 @@
+MAIN THREE 
+
+configurations.py, functions.py, main.py 
+These are the three tools that DRToM actually uses to run its simulation. I talk about how these work on my CERN GitLab
+
+
+CLUSTER THREE
+
+params.sh, run.slurm, submit.sh 
+These are cluster-use helpers and aren't essential to running DRToM, but as I moved everything to a cluster they are now what I use to run the generator.  
+- params.sh is where you change the generation info and it auto calculates the array size
+- run.slurm is what runs main.py (at the bottom with the params.sh parameters)  
+- ./submit.sh is the submit key 

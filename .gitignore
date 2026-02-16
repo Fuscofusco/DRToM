@@ -1,0 +1,16 @@
+# Ignore large data
+Data/
+
+# ROOT / physics outputs
+*.root
+*.lhe
+*.out
+*.log
+*.dat
+
+# Python
+__pycache__/
+*.pyc
+
+# SLURM
+slurm-*.out
