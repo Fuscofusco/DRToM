@@ -1,4 +1,4 @@
-GENERAL OVERVIEW
+# GENERAL OVERVIEW
 
 The purpose of this ColourFlow folder is (of course) to store proper colour flows for the generation. 
 
@@ -9,7 +9,7 @@ Within these are folders for each of the main 2->2 subprocesses we consider (i.e
 Then, lastly, within those are the possible end product states that one can get from tree-level collision 
 
 
-2->4 EXAMPLE 
+## 2->4 EXAMPLE 
 
 We go into the MadGraph folder and want to look at 2->4 processes. In there we see that each of the tree-level QCD elements have their own folder. We are interested in the gg->gg process so we go into that folder and see that there are four possible endstates for 2->4 that start with gg->gg. 
 
@@ -20,7 +20,7 @@ The top line says how many unique colour flows MadGraph saw in its generation of
 This is an arbitrary structure but the one that the generator uses to assign proper colour flows to an event and the LHE files
 
 
-NAMING CONVENTION 
+## NAMING CONVENTION 
 
 g = gluon 
 
