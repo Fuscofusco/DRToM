@@ -1,5 +1,6 @@
 # Ignore large data
 Data/
+logs/
 
 # ROOT / physics outputs
 *.root
