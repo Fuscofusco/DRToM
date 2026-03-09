@@ -1,4 +1,0 @@
-planar: 1
-cross: 0
-star: 0
-misc: 4999
