@@ -6,14 +6,14 @@
 CM_ENERGIES=( 13.0 )    # CoM energies in TeV (13.0 13.6)
 
 NPARTONS_LIST=( 4 )          # Number of partons in the final state (2,3,4,5 allowed)
-# DRS=( 2 3 4 5 6 7 8 9 10 11 )      # DR values in TeV (any value allowed)
-DRS=( 7 8 )                    
+DRS=( 2 3 4 5 6 7 8 9 10 11 )      # DR values in TeV (any value allowed)
+# DRS=( 11 )                    
 
 WINDOW_START=2               # Starting mass (TeV) for slice
 WINDOW_END=11                 # Ending mass (TeV) for slice
 WINDOW_STEP=0.1                # Step size (TeV) 
 
-WINDOW_EVENTS=100000             # Number of events per slice 
+WINDOW_EVENTS=5          # Number of events per slice 
 
 # ----------------------------
 # Build generation slices e.g. "2.00:3.00", "3.00:4.00", ...
