@@ -2,6 +2,9 @@
 Data/
 logs/
 
+# This changes frequently (run parameters) so I don't need to constantly push it 
+params.sh 
+
 # ROOT / physics outputs
 *.root
 *.lhe

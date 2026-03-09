@@ -168,23 +168,22 @@ elif Npartons in [3,4,5]:
 
 
 # -------------------------------------------------------------
-# Create a top-level folder that covers the **full run range**
+# Create a top-level folder that covers the full run range
 # -------------------------------------------------------------
 # If Slurm/CLUSTER_WINDOWS is provided, use it; else fall back to Start/End
 slice_windows_env = os.getenv("CLUSTER_WINDOWS")
 if slice_windows_env:
     windows_list = [w.strip() for w in slice_windows_env.split(",") if w.strip()]
 else:
-    # fallback: reconstruct from Start, End, Step
+    # Fallback: reconstruct from Start, End, Step
     step = event_settings["Step"]
     start_default = event_settings["Start"]
     end_default = event_settings["End"]
     windows_list = [f"{s}:{s+step}" for s in np.arange(start_default, end_default, step)]
 
-# true global start/end
+# True global start/end
 true_start = float(windows_list[0].split(":")[0])
 true_end   = float(windows_list[-1].split(":")[1])
-
 
 # Read CLUSTER_STEP from the environment, fallback to default Step
 cluster_step_env = os.getenv("CLUSTER_STEP")
@@ -196,7 +195,7 @@ if cluster_step_env:
 else:
     cluster_step = event_settings["Step"]
 
-# top-level folder for the study
+# Top-level folder for the study
 main_data_dir = os.path.join(
     data_dir,
     f"cm{sqrts/1e3}",
