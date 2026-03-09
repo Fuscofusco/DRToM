@@ -1,6 +1,7 @@
 # Ignore large data
 Data/
 logs/
+Misc/
 
 # This changes frequently (run parameters) so I don't need to constantly push it 
 params.sh 
