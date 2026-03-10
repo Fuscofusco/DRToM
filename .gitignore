@@ -4,7 +4,9 @@ logs/
 Misc/
 
 # This changes frequently (run parameters) so I don't need to constantly push it 
-params.sh 
+# params.sh 
+# git update-index --skip-worktree params.sh, so GIT isn't tracking it 
+# Do: git update-index --no-skip-worktree params.sh, to start tracking again 
 
 # ROOT / physics outputs
 *.root
