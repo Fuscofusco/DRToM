@@ -1,0 +1,18 @@
+
+=== Slice 10.2-10.299999999999999 TeV Summary ===
+
+qq_qq: 15 events (68.2%)
+    Initial IDs = 2,2 | qq → qqgg    | Outgoing IDs = 2,2,21,21 | Events: 8 (53.3%)
+    Initial IDs = 2,2 | qq → qqqq̄   | Outgoing IDs = 2,2,2,-2 | Events: 4 (26.7%)
+    Initial IDs = 2,2 | qq → qqq'q̄' | Outgoing IDs = 2,2,3,-3 | Events: 2 (13.3%)
+    Initial IDs = 2,2 | qq → qqq'q̄' | Outgoing IDs = 2,2,5,-5 | Events: 1 (6.7%)
+
+qqp_qqp: 6 events (27.3%)
+    Initial IDs = 1,2 | qq' → qq'q'q̄' | Outgoing IDs = 1,2,2,-2 | Events: 2 (33.3%)
+    Initial IDs = 2,3 | qq' → qq'qq̄ | Outgoing IDs = 2,3,2,-2 | Events: 1 (16.7%)
+    Initial IDs = 1,2 | qq' → qq'qq̄ | Outgoing IDs = 1,2,1,-1 | Events: 1 (16.7%)
+    Initial IDs = 1,2 | qq' → qq'q''q̄'' | Outgoing IDs = 1,2,3,-3 | Events: 1 (16.7%)
+    Initial IDs = 1,2 | qq' → qq'gg  | Outgoing IDs = 1,2,21,21 | Events: 1 (16.7%)
+
+gq_gq: 1 events (4.5%)
+    Initial IDs = 21,2 | gq → gqq'q̄' | Outgoing IDs = 21,2,4,-4 | Events: 1 (100.0%)

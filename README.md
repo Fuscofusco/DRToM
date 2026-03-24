@@ -1,4 +1,28 @@
-# MAIN THREE 
+# INFO 
+
+There are four sections here: 
+- (1) DATA STRUCTURE for a quick debrief on how the data is stored 
+- (2) MAIN THREE which are the main scripts used to run the generator 
+- (3) CLUSTER THREE which talks about how one can upgrade this to use on a cluster (what I am currently using)
+- (4) ANALYSIS DIRECTORY which talks about the analysis code that can be used for after
+
+--- 
+
+# (1) DATA STRUCTURE 
+
+This will incorporate the /Data/ and /Summary/ structure. As of uploading there should be some LHE files that help with the explanation. 
+
+The way the data is organized, from top down, is as follows: 
+- CoM energy scale labeled as TeV##p#, e.g. TeV13p0
+- Dimensionality of the event, either 2D or 3D 
+- The collision process: 2to2, 2to3, 2to4, 2to5, or 2to2_QCD
+- The LHE itself named after the range it was generated from in TeV, e.g. 9.0to9.1_0 has events generated from 9.0 TeV to 9.1 TeV 
+
+The Summary folder has the same structure as above, but instead of .lhe files, there are .txt files that contain the event generation summary. This is mainly used in the Analysis part for ID counting. 
+
+--- 
+
+# (2) MAIN THREE 
 
 ## configuration.py 
 
@@ -46,8 +70,9 @@ This file contains all the functions used across the generation. There are multi
 
 This is the generators main guard. Nothing in this file needs to be changed. The choices made in the configuration area are pulled from and used in the generation process. Of note are the two different generation methods of "*FullRange*" or "*Slices*". The internal generation process of each are the same (i.e. both QCD or phase space from the 'Generate Events' code), what changes is if the events are generated over the full range of start and end TeV entered (to which there is a bias selection at the low TeV range) or in slices (so that there is a proper spread of generated events across the whole TeV range).
 
+---
 
-# CLUSTER THREE
+# (3) CLUSTER THREE
 
 params.sh, run.slurm, submit.sh 
 
@@ -55,3 +80,9 @@ These are cluster-use helpers and aren't essential to running DRToM, but as I mo
 - params.sh is where you change the generation info and it auto-calculates the array size
 - run.slurm is what runs main.py (at the bottom with the params.sh parameters)  
 - ./submit.sh is the submit key 
+
+---
+
+# (4) ANALYSIS DIRECTORY 
+
+I've included my old analysis code that was used for validation in the /Analysis/ directory, the main piece being `LHE_Analysis.ipynb`. These are jupyter notebooks so all have markdown cells to talk about what is going on, and there is a readme in that folder for extra info. 

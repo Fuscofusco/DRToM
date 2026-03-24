@@ -1,9 +1,9 @@
 import os
 import numpy as np
-import lhapdf
-import random
-import re
-from collections import Counter
+#import lhapdf
+#import random
+#import re
+#from collections import Counter
 
 #=======================================================================
 #=========================== RANDOM STUFF ==============================
@@ -24,48 +24,35 @@ GeV2TeV = 1e-3
 # Global event parameters
 # These will all be overridden if corresponding cluster_* env vars are set
 event_settings = {
-    "yMax": 4.5,               # Maximum rapidity
-    "Npartons": 2,             # Number of final state partons, can be 2,3,4,5
-    "sqrts": 13 * TeV2GeV,     # Proton CoM energy (GeV)
+    "yMax": 2.5,               # Maximum rapidity
+    "Npartons": 4,             # Number of final state partons, can be 2,3,4,5
+    "sqrts": 13.6 * TeV2GeV,     # Proton CoM energy (GeV)
 
     "Start": 2,                # TeV start
-    "End": 4,                 # TeV end
+    "End": 3,                 # TeV end
     
     "output_type": "PS", # For 2->2 "PS" for PhaseSpace or "QCD", for 2->3,4,5 only "PS"
 
-    "Step": 1,          # Slice step size (TeV). If trying to do a "FullRange" type run, set this to End-Start
-    "N_events": 500,     # Events per Step
+    "Step": 0.1,          # Slice step size (TeV). If trying to do a "FullRange" type run, set this to End-Start
+    "N_events": 10,     # Events per Step
 
-    "M_DR_list": [2],  # Dimensional reduction list of DR values, e.g. [2, 3, ...] Tev 
+    "dimensionality": 3, # default dimensionality (2 or 3 or 2,3)
 }
 
-# -------------------------
-# Cluster overiding parameters via environment variables:
-#
-#   CLUSTER_DR                 -> single DR value (TeV)
-#   CLUSTER_DR_LIST            -> comma-separated DR list (e.g. "2,3,4")
-#   CLUSTER_START, CLUSTER_END -> numeric values for start/end
-#   CLUSTER_STEP               -> numeric step size (TeV)
-#   CLUSTER_NEVENTS            -> integer N_events per Step
-#   CLUSTER_NPARTONS           -> number of final-state partons
-#   CLUSTER_OUTPUT_TYPE        -> "PS" or "QCD"
-#--------------------------
-def _apply_env_overrides():
-    # DR list override
-    dr_list_env = os.getenv("CLUSTER_DR_LIST")
-    dr_env = os.getenv("CLUSTER_DR")
-    if dr_list_env:
-        # parse comma-separated floats
-        try:
-            event_settings["M_DR_list"] = [float(x) for x in dr_list_env.split(",") if x.strip()!=""]
-        except:
-            raise ValueError(f"CLUSTER_DR_LIST malformed: {dr_list_env}")
-    elif dr_env:
-        try:
-            event_settings["M_DR_list"] = [float(dr_env)]
-        except:
-            raise ValueError(f"CLUSTER_DR malformed: {dr_env}")
+# ======================================================
+# Cluster overiding parameters via environment variables
+# ======================================================
 
+# CLUSTER_DR                 -> single DR value (TeV)
+# CLUSTER_DR_LIST            -> comma-separated DR list (e.g. "2,3,4")
+# CLUSTER_START, CLUSTER_END -> numeric values for start/end
+# CLUSTER_STEP               -> numeric step size (TeV)
+# CLUSTER_NEVENTS            -> integer N_events per Step
+# CLUSTER_NPARTONS           -> number of final-state partons
+# CLUSTER_OUTPUT_TYPE        -> "PS" or "QCD"
+# CLUSTER_CM_ENERGY          -> CoM energy in TeV (e.g. "13")
+
+def _apply_env_overrides():
     # Start / End / Step
     if os.getenv("CLUSTER_START"):
         event_settings["Start"] = float(os.getenv("CLUSTER_START"))
@@ -98,8 +85,23 @@ def _apply_env_overrides():
         except:
             raise ValueError(f"CLUSTER_CM_ENERGY malformed: {cm_env}")
 
-_apply_env_overrides()
+    # Optional windows override (comma-separated "start:end" entries)
+    if os.getenv("CLUSTER_WINDOWS"):
+        windows_env = os.getenv("CLUSTER_WINDOWS")
+        event_settings["windows_list"] = [w.strip() for w in windows_env.split(",") if w.strip()!=""]
 
+    # Dimensionality override: accept '2', '3', '2D', '3D'
+    if os.getenv("CLUSTER_DIM"):
+        dim_env = os.getenv("CLUSTER_DIM").strip().lower()
+        if dim_env.endswith("d"):
+            dim_env = dim_env[:-1]
+        if dim_env in ("2", "3"):
+            event_settings["dimensionality"] = int(dim_env)
+        else:
+            raise ValueError(f"CLUSTER_DIM malformed: {os.getenv('CLUSTER_DIM')}")
+
+# Comment out to not use cluster 
+_apply_env_overrides()
 
 #================================================================
 #========================= QCD SETTINGS =========================
@@ -133,19 +135,29 @@ all_subprocesses = list(process_map.keys())
 #========================= EVENT SETTINGS BUILD ============================
 #===========================================================================
 
-# Physics constans 
+# Physics constants 
 yMax  = event_settings["yMax"]          # Maximum rapidity
 Npartons = event_settings["Npartons"]   # Number of final state partons
 sqrts = event_settings["sqrts"]         # Proton CoM energy
 s     = sqrts**2                        # Proton CoM energy squared  
 Ebeam = sqrts / 2                       # Proton beam energy
-M_DR_list = event_settings["M_DR_list"] # Dimensional Reduction list 
-
-# Shorthands
-Start = event_settings["Start"]
-End   = event_settings["End"]
-Step = event_settings["Step"]
 N_events = event_settings["N_events"]
+
+# Expose Start/End/Step at module level for compatibility with main.py
+Start = event_settings.get("Start")
+End = event_settings.get("End")
+Step = event_settings.get("Step")
+
+# Build windows_list: prefer the parsed value from `_apply_env_overrides()`
+if event_settings.get("windows_list"):
+    windows_list = event_settings["windows_list"]
+else:
+    # Fallback: reconstruct from Start, End, Step
+    Step  = event_settings["Step"]
+    Start = event_settings["Start"]
+    End   = event_settings["End"]
+    # Use new naming convention: single decimal and 'to' between bounds (e.g. '3.0to3.1')
+    windows_list = [f"{s:.1f}to{(s+Step):.1f}" for s in np.arange(Start, End, Step)]
 
 
 #==================================================================
@@ -154,52 +166,37 @@ N_events = event_settings["N_events"]
 
 # Find all active subprocesses
 active_processes = [(key, folder, ME_func, lprup) for key, (folder, ME_func, lprup, active) in process_map.items() if active]
-
 if not active_processes:
     raise ValueError("No active process found in process_map.")
 
+# Base directory: CoM energy choice 
+CoM_energy_TeV = sqrts/1e3
+CoM_energy_label = format(CoM_energy_TeV, '.1f').replace('.', 'p') # (e.g. 13.0 -> 13p0)
+CoM_dir = f"TeV{CoM_energy_label}"
+
+# Dimension directory 
+dimensionality = event_settings.get("dimensionality", 2)
+if dimensionality == 2:
+    dim_dir = "2D"
+elif dimensionality == 3:
+    dim_dir = "3D"
+else:
+    raise ValueError("Invalid dimensionality setting. Must be either 2 or 3.")
+
+# Partons output directory
 output_type = event_settings["output_type"]
-
-# Base directory
 if Npartons == 2:
-    data_dir = f"Data/2to{Npartons}_{output_type}"
+    if output_type == "PS":
+        out_dir = f"2to{Npartons}"
+    elif output_type == "QCD":
+        out_dir = f"2to{Npartons}_QCD"
+    else:
+        raise ValueError(f"Invalid output_type: {output_type}")
 elif Npartons in [3,4,5]:
-    data_dir = f"Data/2to{Npartons}"
-
-
-# -------------------------------------------------------------
-# Create a top-level folder that covers the full run range
-# -------------------------------------------------------------
-# If Slurm/CLUSTER_WINDOWS is provided, use it; else fall back to Start/End
-slice_windows_env = os.getenv("CLUSTER_WINDOWS")
-if slice_windows_env:
-    windows_list = [w.strip() for w in slice_windows_env.split(",") if w.strip()]
+    out_dir = f"2to{Npartons}"
 else:
-    # Fallback: reconstruct from Start, End, Step
-    step = event_settings["Step"]
-    start_default = event_settings["Start"]
-    end_default = event_settings["End"]
-    windows_list = [f"{s}:{s+step}" for s in np.arange(start_default, end_default, step)]
+    raise ValueError(f"Unsupported Npartons: {Npartons}")
 
-# True global start/end
-true_start = float(windows_list[0].split(":")[0])
-true_end   = float(windows_list[-1].split(":")[1])
+data_dir = os.path.join("Data", CoM_dir, dim_dir, out_dir)
+summary_dir = os.path.join("Summary", CoM_dir, dim_dir, out_dir)
 
-# Read CLUSTER_STEP from the environment, fallback to default Step
-cluster_step_env = os.getenv("CLUSTER_STEP")
-if cluster_step_env:
-    try:
-        cluster_step = float(cluster_step_env)
-    except ValueError:
-        raise ValueError(f"CLUSTER_STEP malformed: {cluster_step_env}")
-else:
-    cluster_step = event_settings["Step"]
-
-# Top-level folder for the study
-main_data_dir = os.path.join(
-    data_dir,
-    f"cm{sqrts/1e3}",
-    f"tag_{true_start}to{true_end}_{N_events}_{cluster_step}"
-)
-
-os.makedirs(main_data_dir, exist_ok=True)

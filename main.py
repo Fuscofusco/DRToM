@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 import os
 import argparse
+import numpy as np
+from collections import Counter
+import platform
+import time
+from decimal import Decimal, getcontext
+# configuration and functions are imported after CLI env overrides
+cfg = None
+fns = None
 
-# -------- CLI parsing BEFORE importing configuration --------
+# === Cluster parsing before importing configuration ===
 # This sets environment variables that configuration.py will read.
 parser = argparse.ArgumentParser(description="Wrapper for ColourFlow main with runtime overrides.")
 parser.add_argument("--dr", type=float, help="Single DR value (TeV) to run (overrides M_DR_list).")
@@ -14,14 +22,11 @@ parser.add_argument("--step", type=float, help="Slice step size (TeV).")
 parser.add_argument("--nevents", type=int, help="Number of events (per slice or FullRange N_events).")
 parser.add_argument("--npartons", type=int, help="Number of final-state partons (2,3,4,5).")
 parser.add_argument("--output_type", type=str, help="Output type (PS or QCD).")
+parser.add_argument("--dimensionality", "--dim", dest="dimensionality", type=str,
+                    help="Dimensionality override: 2, 3, 2D or 3D")
 args, _unknown = parser.parse_known_args()
 
 # Put CLUSTER overrides into environment variables so configuration.py can read them.
-if args.dr is not None:
-    os.environ["CLUSTER_DR"] = str(args.dr)
-if args.dr_list:
-    # allow e.g. --dr-list "2,3,4"
-    os.environ["CLUSTER_DR_LIST"] = args.dr_list
 if args.cm_energy:
     os.environ["CLUSTER_CM_ENERGY"] = args.cm_energy
 if args.start is not None:
@@ -36,19 +41,8 @@ if args.npartons is not None:
     os.environ["CLUSTER_NPARTONS"] = str(args.npartons)
 if args.output_type is not None:
     os.environ["CLUSTER_OUTPUT_TYPE"] = args.output_type
-
-
-# --- Import the original modules (code without the above parsing) ---
-import numpy as np
-import lhapdf
-import matplotlib.pyplot as plt
-import random
-import re
-from collections import Counter
-import platform
-import time
-import configuration as cfg
-import functions as fns
+if args.dimensionality is not None:
+    os.environ["CLUSTER_DIM"] = str(args.dimensionality)
 
 
 def clear_console():
@@ -57,11 +51,13 @@ def clear_console():
     else:
         os.system("clear")
 
-
+# Main loop 
 if __name__ == "__main__":
+    # Import configuration and functions after environment overrides
+    import configuration as cfg
+    import functions as fns
 
-    start_time = time.time() 
-
+    start_time = time.time()
     params = {
         'TeV2GeV':        cfg.TeV2GeV,
         'sqrts':          cfg.sqrts,
@@ -74,6 +70,7 @@ if __name__ == "__main__":
         'DR_prob':        cfg.DR_prob,
         'Ebeam':          cfg.Ebeam,
         'output_type':    cfg.output_type,
+        'dimensionality':  cfg.dimensionality,
     }
 
     # Print generation info
@@ -87,51 +84,51 @@ if __name__ == "__main__":
     global_interaction_counter = Counter()
     global_full_process_counter = Counter()
 
-    for M_DR_TeV in cfg.M_DR_list:
-        print(f"[NEW] Starting DR at {M_DR_TeV} TeV")
-        M_DR = M_DR_TeV * cfg.TeV2GeV
-        DR_dir = os.path.join(cfg.main_data_dir, f"DR{int(M_DR_TeV)}")
-        os.makedirs(DR_dir, exist_ok=True)
-        summary_filename = os.path.join(DR_dir, "summary_output.txt")
+    print(f"Creating events with dimensionality = {cfg.dimensionality}D")
+    summary_out = os.path.join(cfg.summary_dir)
+    os.makedirs(summary_out, exist_ok=True)
 
-        # Always run the slice-style workflow 
-        CoM_dir = os.path.join(DR_dir, "CoM")
-        lab_dir = os.path.join(DR_dir, "lab")
-        summary_dir = os.path.join(DR_dir, "summary")
-        os.makedirs(CoM_dir, exist_ok=True)
-        os.makedirs(lab_dir, exist_ok=True)
-        os.makedirs(summary_dir, exist_ok=True)
+    # Use integer stepping to avoid floating-point accumulation errors from np.arange
+    n_steps = int(round((cfg.End - cfg.Start) / cfg.Step))
+    if n_steps <= 0:
+        n_steps = 0
+    for i in range(n_steps):
+        min_mass_TeV = cfg.Start + i * cfg.Step
+        max_mass_TeV = min_mass_TeV + cfg.Step
+        window_name = f"{min_mass_TeV:.1f}to{max_mass_TeV:.1f}"
 
-        for min_mass_TeV in np.arange(cfg.Start, cfg.End, cfg.Step):
-            max_mass_TeV = min_mass_TeV + cfg.Step
-            window_name = f"{min_mass_TeV:.2f}to{max_mass_TeV:.2f}"
+        print(f"\u2B24 Starting {window_name} TeV")
 
-            print(f"\u2B24 Starting {window_name} TeV")
+        # Ensure output directory exists and construct lab file path
+        out_dir = cfg.data_dir
+        os.makedirs(out_dir, exist_ok=True)
 
-            CoM_file = os.path.join(CoM_dir, f"{window_name}_{M_DR_TeV:.2f}_{cfg.N_events}.lhe")
-            lab_file = os.path.join(lab_dir, f"{window_name}_{M_DR_TeV:.2f}_{cfg.N_events}.lhe")
+        # Choose next available filename like '<window>_0.lhe', '<window>_1.lhe', ...
+        def next_available_lhe(directory, base_name, max_tries=1000):
+            for i in range(max_tries):
+                candidate = os.path.join(directory, f"{base_name}_{i}.lhe")
+                if not os.path.exists(candidate):
+                    return candidate
+            raise FileExistsError(f"No available filename for {base_name} in {directory} after {max_tries} tries")
 
-            dirs = {
-                "com_file": CoM_file,
-                "lab_file": lab_file
-            }
+        base_name = f"{window_name}"
+        lab_file = next_available_lhe(out_dir, base_name)
+        dirs = {'lab_file': lab_file}
 
-            result = fns.generate_events(
-                M_DR, min_mass_TeV, max_mass_TeV, cfg.N_events,
-                params, dirs, cfg.process_map
-            )
+        result = fns.generate_events(cfg.dimensionality, min_mass_TeV, max_mass_TeV, cfg.N_events,
+                                        params, dirs, cfg.process_map)
 
-            summary_filename = os.path.join(summary_dir, f"summary_{window_name}.txt")
-            with open(summary_filename, "w") as f:
-                f.write(f"\n=== Slice {min_mass_TeV}-{max_mass_TeV} TeV Summary ===\n\n")
-                f.write(fns.format_summary(
-                    result["interaction_counter"],
-                    result["full_process_counter"],
-                    sum(result["interaction_counter"].values())
-                ))
+        summary_filename = os.path.join(summary_out, f"summary_{window_name}.txt")
+        with open(summary_filename, "w") as f:
+            f.write(f"\n=== Slice {min_mass_TeV}-{max_mass_TeV} TeV Summary ===\n\n")
+            f.write(fns.format_summary(
+                result["interaction_counter"],
+                result["full_process_counter"],
+                sum(result["interaction_counter"].values())
+            ))
 
-            global_interaction_counter.update(result["interaction_counter"])
-            global_full_process_counter.update(result["full_process_counter"])
+        global_interaction_counter.update(result["interaction_counter"])
+        global_full_process_counter.update(result["full_process_counter"])
 
     total_global_events = sum(global_interaction_counter.values())
     global_summary = fns.format_summary(global_interaction_counter, global_full_process_counter, total_global_events)

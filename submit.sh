@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p logs
+
 source params.sh
 
 echo "Submitting $CLUSTER_TOTAL array jobs"

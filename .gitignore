@@ -3,6 +3,11 @@ Data/
 logs/
 Misc/
 
+# Ignore some stuff in Analysis 
+Analysis/functions_py_test.ipynb
+Analysis/LambdifyAndpT.ipynb
+Analysis/Plots/
+
 # This changes frequently (run parameters) so I don't need to constantly push it 
 # params.sh 
 # git update-index --skip-worktree params.sh, so GIT isn't tracking it 
@@ -10,7 +15,7 @@ Misc/
 
 # ROOT / physics outputs
 *.root
-*.lhe
+# *.lhe
 *.out
 *.err
 *.log

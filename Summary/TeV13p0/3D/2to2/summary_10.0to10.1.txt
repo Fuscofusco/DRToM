@@ -1,0 +1,8 @@
+
+=== Slice 10.0-10.1 TeV Summary ===
+
+qq_qq: 16 events (72.7%)
+    Initial IDs = 2,2 | qq → qq      | Outgoing IDs = 2,2 | Events: 16 (100.0%)
+
+qqp_qqp: 6 events (27.3%)
+    Initial IDs = 1,2 | qq' → qq'    | Outgoing IDs = 1,2 | Events: 6 (100.0%)

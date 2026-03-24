@@ -41,18 +41,18 @@ fi
 # ----------------------------
 # Decode indices
 # ----------------------------
-NDR=${#DRS[@]}
+NDIMENSION=${#DIMENSIONALITY_LIST[@]}
 NWIN=${#WINDOWS[@]}
 
 NCM=${#CM_ENERGIES[@]}
 
-proc_index=$(( IDX / (NDR * NWIN * NCM) ))
-dr_index=$(( (IDX / (NWIN * NCM)) % NDR ))
+proc_index=$(( IDX / (NDIMENSION * NWIN * NCM) ))
+dim_index=$(( (IDX / (NWIN * NCM)) % NDIMENSION ))
 win_index=$(( (IDX / NCM) % NWIN ))
 cm_index=$(( IDX % NCM ))
 
 NPARTON=${NPARTONS_LIST[$proc_index]}
-DR=${DRS[$dr_index]}
+DIMENSIONALITY=${DIMENSIONALITY_LIST[$dim_index]}
 WIN=${WINDOWS[$win_index]}
 CM=${CM_ENERGIES[$cm_index]}
 
@@ -71,15 +71,21 @@ export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # Run payload
 # ----------------------------
 echo " → CM=${CM} TeV"
-echo "IDX=$IDX → NPARTON=$NPARTON, DR=$DR, WIN=$WIN"
+echo "IDX=$IDX → NPARTON=$NPARTON, DIMENSIONALITY=$DIMENSIONALITY, WIN=$WIN"
 
 
+# Create target output directory (match configuration.full_dir layout)
+CoM_label=$(printf "%.1f" "$CM" | sed 's/\./p/')
+OUT_DIR="Data_test/TeV${CoM_label}/${DIMENSIONALITY}D/2to${NPARTON}"
+mkdir -p "${OUT_DIR}"
+
+# Run payload
 python3 main.py \
     --cm-energy ${CM} \
-    --dr ${DR} \
+    --dimensionality ${DIMENSIONALITY} \
     --start ${START} \
     --end ${END} \
     --step ${WINDOW_STEP} \
     --nevents ${WINDOW_EVENTS} \
     --npartons ${NPARTON} \
-    --output_type PS 
+    --output_type PS

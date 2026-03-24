@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import lhapdf
-
 import random
 import re
 from collections import Counter
@@ -62,7 +61,6 @@ def boost(gamma, beta, p):
         E = np.sqrt(np.dot(P,P)) 
 
     return np.concatenate(([E], P))
-
 
 
 #============================================================================
@@ -237,6 +235,22 @@ def QCD_2to2_outgoingkin(interaction_name, M, RandomY, Randomy, outIDs, QuarkMas
     return outgoing_particles_CoM, pt
 
 
+def check_event_physical(particles, tol=1e-6, label=""):
+    # If we generate an unphysical event it needs to be kicked out 
+    total_p = np.zeros(4)
+    
+    for i, p in enumerate(particles):
+        E = p[0]
+        pvec = p[1:]
+        m2 = E*E - np.dot(pvec, pvec)
+
+        if m2 < -tol:
+            print(f"[FAIL] {label} particle {i} spacelike: m^2 = {m2}")
+            return False
+
+        total_p += p
+
+    return True
 
 #=================================================================================
 #======================= MATRIX ELEMENTS AND COLOUR FLOW =========================
@@ -1012,7 +1026,7 @@ def subprocess_xsecs(M, yMax, s, MC, Subprocesses, subprocess_combinations, PDF,
 #========================= GENERATE EVENTS =============================
 #=======================================================================
 
-def generate_events(M_DR, min_mass_TeV, max_mass_TeV, N_events, params, dirs, process_map):
+def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params, dirs, process_map):
     # Generate 2->2 QCD events with proper outgoing kinematics and write LHE files
     # Unpack params
     MinMass = min_mass_TeV * params['TeV2GeV']
@@ -1161,30 +1175,35 @@ def generate_events(M_DR, min_mass_TeV, max_mass_TeV, N_events, params, dirs, pr
             FullIDs_from_flow = assign_ids_from_colourflow(chosen_colour_flow, FullIDs)
 
             # 7) Kinematics 
-            # CoM
-            pIn_CoM = np.array([
-                [xa * params['Ebeam'], 0.0, 0.0,  xa * params['Ebeam']],
-                [xb * params['Ebeam'], 0.0, 0.0, -xb * params['Ebeam']],
-            ])
+            # Note: my generator is doing everything in the CoM frame then boosting to the lab for the LHE 
+            # mean that we do not use this pIn_lab for generation!
+            pIn_CoM = [
+                (M/2, 0, 0, M/2),
+                (M/2, 0, 0, -M/2)
+            ]
 
             if params['Npartons'] in [3,4,5]:
                 # Always phase space for 2→3,4,5
-                if M > M_DR:
-                    use_phase3 = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
-                    outgoing_particles_CoM = phase3(params['Npartons'], M) if use_phase3 else phase2(params['Npartons'], M)
+                if dimensionality == 3: 
+                    outgoing_particles_CoM = phase3(params['Npartons'], M) 
+                elif dimensionality == 2:
+                    random_choice = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
+                    outgoing_particles_CoM = phase3(params['Npartons'], M) if random_choice else phase2(params['Npartons'], M)
                 else:
-                    outgoing_particles_CoM = phase3(params['Npartons'], M)
+                    raise ValueError(f"Unsupported dimensionality={dimensionality} for Npartons={params['Npartons']}")
 
                 full_event_CoM = np.vstack((pIn_CoM, outgoing_particles_CoM))
 
             elif params['Npartons'] == 2:
                 if output_type == "PS":
                     # 2→2 Phase space
-                    if M > M_DR:
-                        use_phase3 = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
-                        outgoing_particles_CoM = phase3(params['Npartons'], M) if use_phase3 else phase2(params['Npartons'], M)
+                    if dimensionality == 3: 
+                        outgoing_particles_CoM = phase3(params['Npartons'], M) 
+                    elif dimensionality == 2:
+                        random_choice = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
+                        outgoing_particles_CoM = phase3(params['Npartons'], M) if random_choice else phase2(params['Npartons'], M)
                     else:
-                        outgoing_particles_CoM = phase3(params['Npartons'], M)
+                        raise ValueError(f"Unsupported dimensionality={dimensionality} for Npartons={params['Npartons']}")
 
                     full_event_CoM = np.vstack((pIn_CoM, outgoing_particles_CoM))
 
@@ -1201,22 +1220,34 @@ def generate_events(M_DR, min_mass_TeV, max_mass_TeV, N_events, params, dirs, pr
             else:
                 raise ValueError(f"Unsupported Npartons={params['Npartons']}")
 
-            # Lab (boost)
-            b3 = (xa - xb) / (xa + xb) # Don't use abs in numerator
-            beta  = np.array([0.0, 0.0, b3]) 
-            gamma = (xa + xb) / (2 * np.sqrt(xa * xb))
-            
-            try:
-                full_event_Lab = np.array([boost(gamma, beta, p) for p in full_event_CoM])
-            except ValueError:
+            # Check first that events in the CoM are fine (they should always be)
+            if not check_event_physical(full_event_CoM, label="CoM"):
                 fail_count += 1
-                continue        # reject event and resample
+                continue
+
+            # Boost to lab frame
+            # b3 = (xa - xb) / (xa + xb) # Don't use abs in numerator
+            # beta  = np.array([0.0, 0.0, b3]) 
+            # gamma = (xa + xb) / (2 * np.sqrt(xa * xb))
+
+            # Incoming 4-vectors in lab
+            pIn_lab = np.array([
+                [xa * params['Ebeam'], 0, 0,  xa * params['Ebeam']],
+                [xb * params['Ebeam'], 0, 0, -xb * params['Ebeam']],
+            ])
+            p_tot_lab = pIn_lab.sum(axis=0)
+            beta_lab = p_tot_lab[1:] / p_tot_lab[0]  # velocity of CoM in lab frame
+            gamma_lab = 1.0 / np.sqrt(1 - np.dot(beta_lab, beta_lab))
+
+            full_event_Lab = np.array([boost(gamma_lab, beta_lab, p) for p in full_event_CoM])
+
+            # Need to check the lab events because they keep giving unphysical 
+            # events with the boost for some reason...
+            if not check_event_physical(full_event_Lab, label="Lab"):
+                fail_count += 1
+                continue
                 
-            # Append only if the boost works 
-            eventsCoM.append((
-                full_event_CoM, xa, xb, M, ID1, ID2, FullIDs_from_flow,
-                InteractionIndex, lprup, selected_process, chosen_colour_flow
-            ))
+            # Append only if the boost works and only in the lab frame (LHE are only lab frame events)
             eventsLab.append((
                 full_event_Lab, xa, xb, M, ID1, ID2, FullIDs_from_flow,
                 InteractionIndex, lprup, selected_process, chosen_colour_flow
@@ -1227,7 +1258,7 @@ def generate_events(M_DR, min_mass_TeV, max_mass_TeV, N_events, params, dirs, pr
             full_process_counter[(interaction_name, (ID1, ID2), selected_process, tuple(FullIDs))] += 1
 
             accepted_count += 1
-            if (accepted_count % 50 == 0) and (accepted_count < N_events):
+            if (accepted_count % 500 == 0) and (accepted_count < N_events):
                 print(f"[INFO] Generated {accepted_count}/{N_events} events...", end='\r', flush=True)
 
         except Exception as e:
@@ -1252,7 +1283,6 @@ def generate_events(M_DR, min_mass_TeV, max_mass_TeV, N_events, params, dirs, pr
 
     # Write LHE files
     WriteLHE(eventsLab, dirs['lab_file'], s, PDF, CrossSections_list, lprup_by_index)
-    WriteLHE(eventsCoM, dirs['com_file'], s, PDF, CrossSections_list, lprup_by_index)
 
     print(f"✔ Finished {min_mass_TeV:.2f}–{max_mass_TeV:.2f} TeV | "
           f"Events: {accepted_count} | Failures: {fail_count}")
