@@ -11,6 +11,8 @@ This is the analysis tool for all things LHE related. There are markdowns above 
 
 TL;DR reads LHE files and plots: Invariant mass, kinematics, event shape variables, ID counts, momentum fraction plots. 
 
+This notebook works fine for small datasets, but when running on something with e.g. 10million events it is not great. Because of that I broke it up into the `worker_jobs.py` and `merge_and_run.py` (each with their respective slurm jobs) so that it can be done on the cluster. 
+
 
 ## PDF_Plotting.ipynb 
 
@@ -19,4 +21,4 @@ All this is doing is plotting some PDF related physics and should be easy enough
 
 ## Biplanarity Study 
 
-Currently not here, but something I would like to move over.
+This is the notebook I used to conduct the biplanarity test. Comments are in the notebook. 

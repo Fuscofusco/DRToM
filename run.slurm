@@ -68,18 +68,11 @@ export NUMEXPR_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # ----------------------------
-# Run payload
+# Run the main Python script with the appropriate arguments
 # ----------------------------
 echo " → CM=${CM} TeV"
 echo "IDX=$IDX → NPARTON=$NPARTON, DIMENSIONALITY=$DIMENSIONALITY, WIN=$WIN"
 
-
-# Create target output directory (match configuration.full_dir layout)
-CoM_label=$(printf "%.1f" "$CM" | sed 's/\./p/')
-OUT_DIR="Data_test/TeV${CoM_label}/${DIMENSIONALITY}D/2to${NPARTON}"
-mkdir -p "${OUT_DIR}"
-
-# Run payload
 python3 main.py \
     --cm-energy ${CM} \
     --dimensionality ${DIMENSIONALITY} \

@@ -1,12 +1,18 @@
 # Ignore large data
 Data/
+TeV13p0/
+TeV13p6/
 logs/
 Misc/
+Summary/
 
 # Ignore some stuff in Analysis 
 Analysis/functions_py_test.ipynb
 Analysis/LambdifyAndpT.ipynb
 Analysis/Plots/
+Analysis/LHE_analysis.py
+Analysis/file_list.txt
+Analysis/partial_outputs
 
 # This changes frequently (run parameters) so I don't need to constantly push it 
 # params.sh 
@@ -15,11 +21,12 @@ Analysis/Plots/
 
 # ROOT / physics outputs
 *.root
-# *.lhe
+*.lhe
 *.out
 *.err
 *.log
 *.dat
+*.pkl
 
 # Python
 __pycache__/

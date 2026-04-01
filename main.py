@@ -103,10 +103,10 @@ if __name__ == "__main__":
         out_dir = cfg.data_dir
         os.makedirs(out_dir, exist_ok=True)
 
-        # Choose next available filename like '<window>_0.lhe', '<window>_1.lhe', ...
+        # Choose next available filename like '<window>_1.lhe', '<window>_2.lhe', ...
         def next_available_lhe(directory, base_name, max_tries=1000):
-            for i in range(max_tries):
-                candidate = os.path.join(directory, f"{base_name}_{i}.lhe")
+            for i in range(1, max_tries + 1):
+                candidate = os.path.join(directory, f"{base_name}_{i:02d}.lhe")
                 if not os.path.exists(candidate):
                     return candidate
             raise FileExistsError(f"No available filename for {base_name} in {directory} after {max_tries} tries")
