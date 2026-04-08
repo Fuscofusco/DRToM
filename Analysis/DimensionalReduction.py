@@ -756,6 +756,7 @@ def plot_kinematics_overlay_full(
         for i, (mode, vals) in enumerate(data_by_mode.items()):
             style = styles[i % len(styles)]
             arr = flatten_vals(vals.get(key, []))
+            print(f"{mode}: {len(arr)} entries for {key}")  
             h = ax.hist(arr, bins=edges, histtype="step", label=mode, **style)
             if ax is axes[0]:
                 handles.append(h[2][0])

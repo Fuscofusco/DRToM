@@ -1,18 +1,20 @@
 # Ignore large data
 Data/
+Data*/
 TeV13p0/
 TeV13p6/
 logs/
 Misc/
 Summary/
+Summary*/
 
 # Ignore some stuff in Analysis 
 Analysis/functions_py_test.ipynb
 Analysis/LambdifyAndpT.ipynb
 Analysis/Plots/
 Analysis/LHE_analysis.py
-Analysis/file_list.txt
-Analysis/partial_outputs
+Analysis/LHE_analysis.ipynb
+Analysis/ClusterData/
 
 # This changes frequently (run parameters) so I don't need to constantly push it 
 # params.sh 

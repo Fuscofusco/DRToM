@@ -2,10 +2,27 @@ import os
 import DimensionalReduction as dr
 import sys
 
+# Make paths relative to this script so SLURM/current working dir doesn't matter
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+energy_folder = "TeV13p0"
+what_process = "2to4"
+Start = 2.0
+End = 5.0
+Step = 1.0
+DR_scale = 2.0
+
 FILES_PER_TASK = int(os.environ.get("FILES_PER_TASK", 10))
 TASK_ID = int(os.environ.get("SLURM_ARRAY_TASK_ID", 1)) - 1
 
-FILE_LIST = os.environ.get("FILE_LIST", "file_list.txt")
+# Default to the ClusterData/FileLists location inside the repo; allow override via env
+default_file_list = os.path.join(base_dir, "ClusterData", "FileLists",
+                                 energy_folder, what_process, f"DR_{DR_scale}", f"{Start}_{End}_{Step}.txt")
+FILE_LIST = os.environ.get("FILE_LIST", default_file_list)
+
+if not os.path.exists(FILE_LIST):
+    print(f"ERROR: FILE_LIST not found: {FILE_LIST}")
+    sys.exit(1)
 
 with open(FILE_LIST) as f:
     all_files = [line.strip() for line in f if line.strip()]
@@ -180,7 +197,7 @@ for filename in filenames:
             event_counts[directory][lprup][1] += n_events_lprup
             total_cross_sections[directory] += xsec
 
-output_dir = "partial_outputs"
+output_dir = f"ClusterData/PartialOutputs/{energy_folder}/{what_process}/DR_{DR_scale}"
 os.makedirs(output_dir, exist_ok=True)
 
 import pickle

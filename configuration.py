@@ -199,4 +199,3 @@ else:
 
 data_dir = os.path.join("Data", CoM_dir, dim_dir, out_dir)
 summary_dir = os.path.join("Summary", CoM_dir, dim_dir, out_dir)
-

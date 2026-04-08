@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=merge_DR
+#SBATCH --job-name=merge
 #SBATCH --output=logs/merge_%j.out
 #SBATCH --error=logs/merge_%j.err
 

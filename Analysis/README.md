@@ -13,6 +13,23 @@ TL;DR reads LHE files and plots: Invariant mass, kinematics, event shape variabl
 
 This notebook works fine for small datasets, but when running on something with e.g. 10million events it is not great. Because of that I broke it up into the `worker_jobs.py` and `merge_and_run.py` (each with their respective slurm jobs) so that it can be done on the cluster. 
 
+### How to use
+
+Start in `make_DR_list.ipynb` and make the file list for what DR scale you want. 
+
+-This should output in ClusterData/FileLists under the appropriate energy/process/DR folder 
+
+Go to `worker_jobs.py` and change all the input information at the top to make sure it is pointing to the proper file list. Check `worker_jobs.slurm` to make sure there is a proper amount of arrays and file per task.
+
+- This should output in ClusterData/PartialOutputs under the appropriate energy/process/DR folder 
+
+**Note:** I tried running multiple of these at once and it wasn't really working. It's annoying but just do one FileList file at a time...
+
+Go to `merge_and_run.py` and change all the input information under "Safety" block to make sure it is pointing to the proper file list. Run `merge_run.slurm`
+
+- Outputs should be in Plots under the appropriate energy/process/DR folder 
+
+
 
 ## PDF_Plotting.ipynb 
 
