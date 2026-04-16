@@ -32,82 +32,35 @@ importlib.reload(dr)
 # =================================================
 # 2️⃣ Safety: required variables and directories
 # =================================================
-energy_folder = "TeV13p0"
-what_process = "2to2"
+tag = "11000"
+energy_folder = f"TeV13p0_{tag}"
+what_process = "2to4"
 DR_scale = 2.0
+
 outdir_base = os.path.join("Plots", energy_folder, what_process, f"DR_{DR_scale}")
 os.makedirs(outdir_base, exist_ok=True)
 
-# Merging from:
-files = sorted(glob.glob(f"ClusterData/PartialOutputs/{energy_folder}/{what_process}/DR_{DR_scale}/*.pkl"))
-if not files:
-    raise RuntimeError(f"No pickle files found in {files}")
+merged_file = os.path.join(
+    "ClusterData",
+    "MergedOutputs",
+    energy_folder,
+    what_process,
+    f"DR_{DR_scale}",
+    "merged.pkl"
+)
 
-required_keys = ["store_xa", "store_xb", "event_counts", "total_cross_sections", "data_dict"]
+if not os.path.exists(merged_file):
+    raise RuntimeError(f"Merged file not found: {merged_file}")
 
-# =================================================
-# 3️⃣ Helper function for merging
-# =================================================
-def merge_dicts(target, source):
-    for directory, subdict in source.items():
-        if directory not in target:
-            target[directory] = {}
-        for lprup, dd in subdict.items():
-            if not isinstance(dd, dict):  # Case 1: non-physics dict (list)
-                target[directory].setdefault(lprup, [])
-                if not isinstance(target[directory][lprup], list):
-                    target[directory][lprup] = []
-                target[directory][lprup].extend(dd)
-            else:  # Case 2: physics dict
-                target[directory].setdefault(lprup, {k: [] for k in dd})
-                if not isinstance(target[directory][lprup], dict):
-                    print(f"[WARNING] Fixing malformed entry for {directory}/{lprup}")
-                    target[directory][lprup] = {k: [] for k in dd}
-                for key, vals in dd.items():
-                    target[directory][lprup].setdefault(key, [])
-                    target[directory][lprup][key].extend(vals)
+with open(merged_file, "rb") as f:
+    merged = pickle.load(f)
 
-# =================================================
-# 4️⃣ Initialize storage
-# =================================================
-store_xa, store_xb = [], []
-event_counts, total_cross_sections, data_dict = {}, {}, {}
+store_xa = merged["store_xa"]
+store_xb = merged["store_xb"]
+event_counts = merged["event_counts"]
+total_cross_sections = merged["total_cross_sections"]
+data_dict = merged["data_dict"]
 
-# =================================================
-# 5️⃣ Merge pickle files safely
-# =================================================
-print()
-for fpath in files:
-    print(f"Loading {fpath}")
-    with open(fpath, "rb") as f:
-        d = pickle.load(f)
-    for key in required_keys:
-        if key not in d:
-            raise RuntimeError(f"Missing key '{key}' in {fpath}")
-    store_xa.extend(d["store_xa"])
-    store_xb.extend(d["store_xb"])
-
-    # total cross sections
-    for k, v in d["total_cross_sections"].items():
-        total_cross_sections[k] = total_cross_sections.get(k, 0.0) + v
-
-    # event counts
-    for k, sub in d["event_counts"].items():
-        if k not in event_counts:
-            event_counts[k] = sub
-        else:
-            for lprup, vals in sub.items():
-                if lprup not in event_counts[k]:
-                    event_counts[k][lprup] = vals
-                else:
-                    event_counts[k][lprup][0] += vals[0]
-                    event_counts[k][lprup][1] += vals[1]
-
-    merge_dicts(data_dict, d["data_dict"])
-
-print()
-print(f"✅ Merging complete. Total events: {len(store_xa)}")
-print()
 
 # =================================================
 # 6️⃣ Histograms for x_a and x_b
@@ -136,7 +89,6 @@ plt.savefig(xa_xb_out, dpi=300)
 plt.close()
 print("Saved x_a/x_b histograms ->", xa_xb_out)
 print()
-
 
 # ====================================
 # 7️⃣ Aggregate invariant masses and weights
@@ -192,6 +144,12 @@ hist, bin_edges = np.histogram(
 
 bin_widths = np.diff(bin_edges)
 bin_centres = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+ 
+# Convert x-axis to TeV for plotting (data are in GeV)
+bin_widths = np.diff(bin_edges)
+bin_centres = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+bin_centres_TeV = bin_centres / 1000.0
+range_M_TeV = (range_M[0] / 1000.0, range_M[1] / 1000.0)
 
 # Normalize MC histogram to unity
 hist_norm = hist / bin_widths
@@ -199,10 +157,11 @@ area_hist = np.sum(hist_norm * bin_widths)
 hist_unit = hist_norm / area_hist if area_hist > 0 else hist_norm
 
 plt.figure(figsize=(9, 5))
-plt.step(bin_centres, hist_unit, where='mid', linewidth=1.5, label="MC (DRToM)")
+plt.step(bin_centres_TeV, hist_unit, where='mid', linewidth=1.5, label="MC (DRToM)")
 
-plt.xlabel("Invariant Mass [GeV]")
+plt.xlabel("Invariant Mass [TeV]")
 plt.ylabel("Normalized dσ/dM")
+plt.xlim(range_M_TeV)
 plt.yscale("log")
 plt.grid(True, which='both', linestyle='--', alpha=0.5)
 plt.legend()
@@ -222,7 +181,7 @@ print()
 
 # Sometimes plotting the theory curve overlay isn't needed (only useful for when generating individual QCD processes
 # not when all are active)
-want_theory_curve = False
+want_theory_curve = True
 
 if want_theory_curve: 
 
@@ -268,6 +227,11 @@ if want_theory_curve:
     bin_widths = np.diff(bin_edges)
     bin_centres = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
+    # Convert histogram x-axis to TeV
+    bin_centres_TeV = bin_centres / 1000.0
+    bin_widths_TeV = bin_widths / 1000.0
+    range_M_TeV = (range_M[0] / 1000.0, range_M[1] / 1000.0)
+
     # Normalize MC histogram to unity
     hist_norm = hist / bin_widths
     area_hist = np.sum(hist_norm * bin_widths)
@@ -275,17 +239,20 @@ if want_theory_curve:
 
     # Normalize theory curve to same area
     first_curve = next(iter(theory_curves.values()))
-    theory_interp = np.interp(bin_centres, M_vals, first_curve)
-    area_theory = np.sum(theory_interp * bin_widths)
+    # Ensure theory M grid matches TeV units for interpolation
+    M_vals_TeV = M_vals / 1000.0
+    theory_interp = np.interp(bin_centres_TeV, M_vals_TeV, first_curve)
+    area_theory = np.sum(theory_interp * bin_widths_TeV)
     theory_unit = theory_interp / area_theory if area_theory > 0 else theory_interp
 
-    # Plot overlay
+    # Plot overlay (TeV x-axis)
     plt.figure(figsize=(9,5))
-    plt.step(bin_centres, hist_unit, where='mid', linewidth=1.5, label="MC (DRToM)")
-    plt.plot(bin_centres, theory_unit, color='red', linewidth=1.5, label="Theory Curve")
+    plt.step(bin_centres_TeV, hist_unit, where='mid', linewidth=1.5, label="MC (DRToM)")
+    plt.plot(bin_centres_TeV, theory_unit, color='red', linewidth=1.5, label="Theory Curve")
 
-    plt.xlabel("Invariant Mass [GeV]")
+    plt.xlabel("Invariant Mass [TeV]")
     plt.ylabel("Normalized dσ/dM")
+    plt.xlim(range_M_TeV)
     plt.yscale("log")
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
     plt.legend()
@@ -463,6 +430,7 @@ print()
 print(" Saved event-shape plots ")
 print()
 
+
 # =================================
 # 8️⃣ Momentum / Angles plots
 # =================================
@@ -553,3 +521,203 @@ plt.close("all")
 
 print("✅ Momentum/Angles plotting complete")
 
+
+# =================================
+# 8️⃣ Planar vs. Mass plots 
+# =================================
+
+frame_choice = "CoM"   # "lab" or "CoM"
+use_scatter = True
+
+# Mass range (TeV)
+Mmin, Mmax = 2, 11
+bins = 50
+GeV2TeV = 1e-3
+
+data_arrays = {}
+
+for directory, lprup_dict in data_dict.items():
+    B_all, A_all, M_all = [], [], []
+
+    for lprup, dd in lprup_dict.items():
+        if not isinstance(dd, dict):
+            continue
+
+        if frame_choice == "lab":
+            B_all.extend(dd.get("B_values_lab", []))
+            A_all.extend(dd.get("aplanarity_lab", []))
+            M_all.extend(dd.get("M_lab", []))
+        else:
+            B_all.extend(dd.get("B_values_CoM", []))
+            A_all.extend(dd.get("aplanarity_CoM", []))
+            M_all.extend(dd.get("M_CoM", []))
+
+    if len(B_all) == 0:
+        continue
+
+    data_arrays[directory] = {
+        "B_values": np.array(B_all),
+        "aplanarity": np.array(A_all),
+        "M": np.array(M_all)
+    }
+
+directories = list(data_arrays.keys())
+
+print(f"Found {len(directories)} datasets")
+print()
+
+# Mass binning setup
+mass_edges = np.linspace(Mmin, Mmax, bins + 1)
+mass_centers = 0.5 * (mass_edges[:-1] + mass_edges[1:])
+
+# Plot styling
+colors = plt.cm.viridis(np.linspace(0, 1, len(directories)))
+markers = ['o', 's', 'D', '^', 'v', '<', '>', 'p', '*', 'X']
+
+# Create plots
+fig_B, ax_B = plt.subplots(figsize=(8, 6))
+fig_A, ax_A = plt.subplots(figsize=(8, 6))
+
+fig_B.subplots_adjust(right=0.95)
+fig_A.subplots_adjust(right=0.95)
+
+# Main loop over datasets
+for idx, directory in enumerate(directories):
+
+    B_array = data_arrays[directory]["B_values"]
+    A_array = data_arrays[directory]["aplanarity"]
+    M = data_arrays[directory]["M"]
+
+    # Convert to TeV
+    mm = np.array(M) * GeV2TeV
+
+    # Remove bad values
+    valid = np.isfinite(mm)
+    mm = mm[valid]
+    B_array = B_array[valid]
+    A_array = A_array[valid]
+
+    if len(mm) == 0:
+        continue
+
+    # Background weights
+    weights_bg3 = np.asarray(dr.bg3(mm, 1.50e2, 7.38e0, -4.68e0))
+
+    poi_B = np.zeros(bins)
+    poi_A = np.zeros(bins)
+
+    # Proper mass binning
+    for i in range(bins):
+
+        mask = (mm >= mass_edges[i]) & (mm < mass_edges[i+1])
+
+        if np.sum(mask) == 0:
+            continue
+
+        weights = weights_bg3[mask]
+        if np.sum(weights) > 0:
+            weights = weights / np.sum(weights)
+
+        # --- B histogram ---
+        n_B, _ = np.histogram(
+            B_array[mask],
+            bins=50,
+            range=(0.0, 1.0),
+            weights=weights
+        )
+
+        # --- A histogram ---
+        n_A, _ = np.histogram(
+            A_array[mask],
+            bins=50,
+            range=(0.0, 1.0),
+            weights=weights
+        )
+
+        poi_B[i] = n_B[-1]   # B ~ 1
+        poi_A[i] = n_A[0]    # A ~ 0
+
+    # Plotting
+    from matplotlib.ticker import AutoMinorLocator
+
+    for ax in [ax_B, ax_A]:
+        # Major ticks (integers on x-axis)
+        ax.set_xticks(np.arange(Mmin, Mmax + 1, 1))
+
+        # Minor ticks
+        ax.minorticks_on()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+        # Tick style
+        ax.tick_params(axis='both', which='both', direction='in', top=True, right=True)
+
+    if use_scatter:
+        ax_B.scatter(
+            mass_centers, poi_B,
+            color=colors[idx],
+            marker=markers[idx % len(markers)],
+            label = r"$\Lambda_3 = {:.1f}\,\mathrm{{TeV}}$".format(DR_scale)
+        )
+        ax_A.scatter(
+            mass_centers, poi_A,
+            color=colors[idx],
+            marker=markers[idx % len(markers)],
+            label = r"$\Lambda_3 = {:.1f}\,\mathrm{{TeV}}$".format(DR_scale)
+        )
+    else:
+        ax_B.plot(
+            mass_centers, poi_B,
+            color=colors[idx],
+            linestyle='-',
+            alpha=0.7,
+            label = r"$\Lambda_3 = {:.1f}\,\mathrm{{TeV}}$".format(DR_scale)
+        )
+        ax_A.plot(
+            mass_centers, poi_A,
+            color=colors[idx],
+            linestyle='-',
+            alpha=0.7,
+            label = r"$\Lambda_3 = {:.1f}\,\mathrm{{TeV}}$".format(DR_scale)
+        )
+
+# Formatting
+ax_B.set_xlabel(r"Four-jet invariant mass, $M_{jjjj}$ [TeV]")
+ax_B.set_ylabel("Fraction (B > 0.98)")
+# ax_B.set_title(f"Biplanarity vs Mass ({frame_choice})")
+ax_B.set_ylim(0, 1.05)
+ax_B.grid(True)
+# ax_B.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+ax_A.set_xlabel(r"Four-jet invariant mass, $M_{jjjj}$ [TeV]")
+ax_A.set_ylabel("Fraction (A < 0.01)")
+# ax_A.set_title(f"Aplanarity vs Mass ({frame_choice})")
+ax_A.set_ylim(0, 1.05)
+ax_A.grid(True)
+# ax_A.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+plt.tight_layout()
+plt.show()
+
+# --- Share legend ---
+handles, labels = ax_B.get_legend_handles_labels()
+fig_legend = plt.figure(figsize=(10, 1.5))
+fig_legend.legend(
+    handles,
+    labels,
+    loc="center",
+    ncol=min(len(labels), 5),  # auto-wrap nicely
+    frameon=False
+)
+fig_legend.tight_layout()
+plt.show()
+
+# Save 
+outdir = os.path.join("Plots", energy_folder, what_process, f"DR_{DR_scale}")
+os.makedirs(outdir, exist_ok=True)
+
+fig_B.savefig(os.path.join(outdir, f"B_vs_M_{frame_choice}.png"), dpi=300, bbox_inches="tight")
+fig_A.savefig(os.path.join(outdir, f"A_vs_M_{frame_choice}.png"), dpi=300, bbox_inches="tight")
+fig_legend.savefig(os.path.join(outdir, f"Legend_{frame_choice}.png"), dpi=300, bbox_inches="tight")
+
+print("Figures saved")

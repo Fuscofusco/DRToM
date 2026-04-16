@@ -24,6 +24,9 @@ parser.add_argument("--npartons", type=int, help="Number of final-state partons 
 parser.add_argument("--output_type", type=str, help="Output type (PS or QCD).")
 parser.add_argument("--dimensionality", "--dim", dest="dimensionality", type=str,
                     help="Dimensionality override: 2, 3, 2D or 3D")
+parser.add_argument("--iterations", "--n-iterations", dest="iterations", type=int,
+                    default=1,
+                    help="Number of MC iterations per window (creates _01, _02, ...).")
 args, _unknown = parser.parse_known_args()
 
 # Put CLUSTER overrides into environment variables so configuration.py can read them.
@@ -43,6 +46,8 @@ if args.output_type is not None:
     os.environ["CLUSTER_OUTPUT_TYPE"] = args.output_type
 if args.dimensionality is not None:
     os.environ["CLUSTER_DIM"] = str(args.dimensionality)
+if args.iterations is not None:
+    os.environ["CLUSTER_ITERATIONS"] = str(args.iterations)
 
 
 def clear_console():
@@ -104,31 +109,43 @@ if __name__ == "__main__":
         os.makedirs(out_dir, exist_ok=True)
 
         # Choose next available filename like '<window>_1.lhe', '<window>_2.lhe', ...
-        def next_available_lhe(directory, base_name, max_tries=1000):
-            for i in range(1, max_tries + 1):
+        def next_available_lhe(directory, base_name, start_index=1, max_tries=1000):
+            # Try preferred index first, otherwise return first free slot >= start_index
+            for i in range(start_index, start_index + max_tries):
                 candidate = os.path.join(directory, f"{base_name}_{i:02d}.lhe")
                 if not os.path.exists(candidate):
                     return candidate
             raise FileExistsError(f"No available filename for {base_name} in {directory} after {max_tries} tries")
 
         base_name = f"{window_name}"
-        lab_file = next_available_lhe(out_dir, base_name)
-        dirs = {'lab_file': lab_file}
+        # Determine iterations (CLI override -> env -> default 1)
+        iterations = 1
+        try:
+            iterations = int(os.environ.get("CLUSTER_ITERATIONS", args.iterations if hasattr(args, 'iterations') else 1))
+        except Exception:
+            iterations = 1
 
-        result = fns.generate_events(cfg.dimensionality, min_mass_TeV, max_mass_TeV, cfg.N_events,
-                                        params, dirs, cfg.process_map)
+        # Run multiple MC generations per window, producing _01, _02, ... files
+        for it in range(1, iterations + 1):
+            lab_file = next_available_lhe(out_dir, base_name, start_index=it)
+            dirs = {'lab_file': lab_file}
 
-        summary_filename = os.path.join(summary_out, f"summary_{window_name}.txt")
-        with open(summary_filename, "w") as f:
-            f.write(f"\n=== Slice {min_mass_TeV}-{max_mass_TeV} TeV Summary ===\n\n")
-            f.write(fns.format_summary(
-                result["interaction_counter"],
-                result["full_process_counter"],
-                sum(result["interaction_counter"].values())
-            ))
+            print(f"\u2B24 Starting {window_name} TeV (iteration {it}/{iterations})")
 
-        global_interaction_counter.update(result["interaction_counter"])
-        global_full_process_counter.update(result["full_process_counter"])
+            result = fns.generate_events(cfg.dimensionality, min_mass_TeV, max_mass_TeV, cfg.N_events,
+                                            params, dirs, cfg.process_map)
+
+            summary_filename = os.path.join(summary_out, f"summary_{window_name}_{it:02d}.txt")
+            with open(summary_filename, "w") as f:
+                f.write(f"\n=== Slice {min_mass_TeV}-{max_mass_TeV} TeV Summary (iter {it}) ===\n\n")
+                f.write(fns.format_summary(
+                    result["interaction_counter"],
+                    result["full_process_counter"],
+                    sum(result["interaction_counter"].values())
+                ))
+
+            global_interaction_counter.update(result["interaction_counter"])
+            global_full_process_counter.update(result["full_process_counter"])
 
     total_global_events = sum(global_interaction_counter.values())
     global_summary = fns.format_summary(global_interaction_counter, global_full_process_counter, total_global_events)

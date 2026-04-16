@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=DRToM
-#SBATCH --output=logs/%A_%a.out
-#SBATCH --error=logs/%A_%a.err
-
+#SBATCH --output=logs/TeV13p0_220/%A_%a.out
+#SBATCH --error=logs/TeV13p0_220/%A_%a.err
+#SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
 
 # ----------------------------
 # Environment
@@ -27,6 +27,8 @@ TOTAL=$CLUSTER_TOTAL
 # ----------------------------
 # Sanity check
 # ----------------------------
+# Sanity check
+# ----------------------------
 if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
     echo "This script must run as a Slurm array."
     exit 1
@@ -39,17 +41,23 @@ if [ "$IDX" -ge "$TOTAL" ]; then
 fi
 
 # ----------------------------
-# Decode indices
+# Decode indices (include iterations)
+# Ordering (fastest → slowest): CM_ENERGIES, ITERATIONS, WINDOWS, DIMENSIONALITY_LIST, NPARTONS_LIST
 # ----------------------------
 NDIMENSION=${#DIMENSIONALITY_LIST[@]}
 NWIN=${#WINDOWS[@]}
 
 NCM=${#CM_ENERGIES[@]}
 
-proc_index=$(( IDX / (NDIMENSION * NWIN * NCM) ))
-dim_index=$(( (IDX / (NWIN * NCM)) % NDIMENSION ))
-win_index=$(( (IDX / NCM) % NWIN ))
-cm_index=$(( IDX % NCM ))
+# Decompose IDX into indices (integer arithmetic)
+# Ordering (fastest → slowest): CM_ENERGIES, WINDOWS, DIMENSIONALITY_LIST, NPARTONS_LIST
+temp=$IDX
+cm_index=$(( temp % NCM ))
+temp=$(( temp / NCM ))
+win_index=$(( temp % NWIN ))
+temp=$(( temp / NWIN ))
+dim_index=$(( temp % NDIMENSION ))
+proc_index=$(( temp / NDIMENSION ))
 
 NPARTON=${NPARTONS_LIST[$proc_index]}
 DIMENSIONALITY=${DIMENSIONALITY_LIST[$dim_index]}
@@ -81,4 +89,5 @@ python3 main.py \
     --step ${WINDOW_STEP} \
     --nevents ${WINDOW_EVENTS} \
     --npartons ${NPARTON} \
-    --output_type PS
+    --output_type PS \
+    --iterations ${ITERATIONS}

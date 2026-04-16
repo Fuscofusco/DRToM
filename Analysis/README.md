@@ -5,31 +5,31 @@ This is not the best name for this area, but oh well. This is all the analysis f
 Within the scripts below I call to several functions in this area, so I would stick to looking at the relevant ones as needed. 
 
 
-## LHE_Analysis.ipynb 
+## Actual analysis
 
-This is the analysis tool for all things LHE related. There are markdowns above each cell for direction on what is going on. The outputs of this go into the `Plots` directory. 
+The point is to plot: Invariant mass, kinematics, event shape variables, momentum fraction plots, and planarity vs. mass plots. 
 
-TL;DR reads LHE files and plots: Invariant mass, kinematics, event shape variables, ID counts, momentum fraction plots. 
+Since we are using larger datasets, this is broken up into many steps. 
 
-This notebook works fine for small datasets, but when running on something with e.g. 10million events it is not great. Because of that I broke it up into the `worker_jobs.py` and `merge_and_run.py` (each with their respective slurm jobs) so that it can be done on the cluster. 
+Start in `make_DR_list.py` and make the file list for what DR scale you want. Note to add an appropriate tag so that you can track the data easier. 
 
-### How to use
-
-Start in `make_DR_list.ipynb` and make the file list for what DR scale you want. 
-
--This should output in ClusterData/FileLists under the appropriate energy/process/DR folder 
+-This outputs in ClusterData/FileLists under the appropriate energy/process/DR folder 
 
 Go to `worker_jobs.py` and change all the input information at the top to make sure it is pointing to the proper file list. Check `worker_jobs.slurm` to make sure there is a proper amount of arrays and file per task.
 
 - This should output in ClusterData/PartialOutputs under the appropriate energy/process/DR folder 
 
-**Note:** I tried running multiple of these at once and it wasn't really working. It's annoying but just do one FileList file at a time...
+**Note:** I tried running multiple of these at once and it wasn't really working so that's why it is part of a loop now over the process and DR types.
 
-Go to `merge_and_run.py` and change all the input information under "Safety" block to make sure it is pointing to the proper file list. Run `merge_run.slurm`
+Go to `merge.py` and change all the input information under "Safety" block to make sure it is pointing to the proper file list. Run `merge.slurm`
 
-- Outputs should be in Plots under the appropriate energy/process/DR folder 
+- Outputs should be in ClusterData/MergedOutputs under the appropriate energy/process/DR folder 
 
+**Note:** These can be run for multiple files at the same time. There was no issues in that. 
 
+With the merged files, we can run the analysis. This is done in `kinematics.py` and `PlanarVsMass.py`. Specifically, `kinematics` handles all the kinematic-like variables (x fractions, invariant mass, event shape variables, kinematics), and `PlanarVsMass` handles the plots like biplanarity as a function of mass and the overlays of DRs with that. 
+
+**Note:** These can be run for multiple files at the same time. There was no issues in that. 
 
 ## PDF_Plotting.ipynb 
 

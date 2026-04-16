@@ -541,20 +541,23 @@ def plot_kinematics(
     # =========================
     # 1) Energy, |p|, pT
     # =========================
-    all_eppt = energy + momentum + pt
+    # Scale to TeV for plotting
+    energy_scale = 1.0 / 1000.0
+    unit_label = "TeV"
+    all_eppt = (np.array(energy) * energy_scale).tolist() + (np.array(momentum) * energy_scale).tolist() + (np.array(pt) * energy_scale).tolist()
     num_bins_eppt = 80
-    edges = np.linspace(0, max(all_eppt), num_bins_eppt + 1)
+    edges = np.linspace(0, max(all_eppt) if len(all_eppt)>0 else 1, num_bins_eppt + 1)
     bin_w = edges[1] - edges[0]
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
     for ax, data, lbl in zip(
-        axes, [energy, momentum, pt],
-        ["Energy [GeV]", r"$|\vec p|$ [GeV]", r"$p_T$ [GeV]"]
+        axes, [np.array(energy) * energy_scale, np.array(momentum) * energy_scale, np.array(pt) * energy_scale],
+        [f"Energy [{unit_label}]", r"$|\vec p|$ [%s]" % unit_label, r"$p_T$ [%s]" % unit_label]
     ):
         counts, bins_, _ = ax.hist(data, bins=edges, color='red', alpha=0.7,
                                    edgecolor='gray', linewidth=1.2)
         ax.set_xlabel(lbl, fontsize=label_fontsize)
-        ax.set_ylabel(f"Events / {format_bin_width(bin_w, 'GeV')}", fontsize=label_fontsize)
+        ax.set_ylabel(f"Events / {format_bin_width(bin_w, unit_label)}", fontsize=label_fontsize)
         ax.set_yscale('log')
         ax.grid(True, linestyle='--', alpha=0.7)
         annotate_stats(ax, data, bins_)
@@ -567,20 +570,20 @@ def plot_kinematics(
     # =========================
     # 2) px, py, pz
     # =========================
-    all_xyz = px + py + pz
+    all_xyz = (np.array(px) * energy_scale).tolist() + (np.array(py) * energy_scale).tolist() + (np.array(pz) * energy_scale).tolist()
     num_bins_xyz = 50
-    edges = np.linspace(min(all_xyz), max(all_xyz), num_bins_xyz + 1)
+    edges = np.linspace(min(all_xyz) if len(all_xyz)>0 else -1, max(all_xyz) if len(all_xyz)>0 else 1, num_bins_xyz + 1)
     bin_w = edges[1] - edges[0]
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6))
     for ax, data, lbl in zip(
-        axes, [px, py, pz],
-        [r"$p_x$ [GeV]", r"$p_y$ [GeV]", r"$p_z$ [GeV]"]
+        axes, [np.array(px) * energy_scale, np.array(py) * energy_scale, np.array(pz) * energy_scale],
+        [r"$p_x$ [%s]" % unit_label, r"$p_y$ [%s]" % unit_label, r"$p_z$ [%s]" % unit_label]
     ):
         counts, bins_, _ = ax.hist(data, bins=edges, color='blue', alpha=0.7,
                                    edgecolor='gray', linewidth=1.2)
         ax.set_xlabel(lbl, fontsize=label_fontsize)
-        ax.set_ylabel(f"Events / {format_bin_width(bin_w, 'GeV')}", fontsize=label_fontsize)
+        ax.set_ylabel(f"Events / {format_bin_width(bin_w, unit_label)}", fontsize=label_fontsize)
         ax.grid(True, linestyle='--', alpha=0.7)
         annotate_stats(ax, data, bins_)
     plt.tight_layout()
@@ -678,6 +681,9 @@ def plot_kinematics_overlay_full(
         dict(color="gold",   linewidth=1, linestyle="-."),
     ]
     label_fontsize = 16
+    # Convert GeV -> TeV for these kinematic plots
+    energy_scale = 1.0 / 1000.0
+    unit_label = "TeV"
 
     def nice_bin_label(width):
         """Round bin width to a nice display value (1, 2, 5 × 10^n)."""
@@ -742,20 +748,23 @@ def plot_kinematics_overlay_full(
 
     all_vals = []
     for mdat in data_by_mode.values():
-        all_vals.extend(flatten_vals(mdat.get("energy", [])).tolist())
-        all_vals.extend(flatten_vals(mdat.get("momentum", [])).tolist())
-        all_vals.extend(flatten_vals(mdat.get("pt", [])).tolist())
-    edges = np.linspace(0, max(all_vals), num_bins + 1)
+        all_vals.extend((flatten_vals(mdat.get("energy", [])) * energy_scale).tolist())
+        all_vals.extend((flatten_vals(mdat.get("momentum", [])) * energy_scale).tolist())
+        all_vals.extend((flatten_vals(mdat.get("pt", [])) * energy_scale).tolist())
+    if len(all_vals) == 0:
+        edges = np.linspace(0, 1, num_bins + 1)
+    else:
+        edges = np.linspace(0, max(all_vals), num_bins + 1)
     bin_w = nice_bin_label(edges[1] - edges[0])
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6), sharey=True)
-    labels = ["Energy [GeV]", r"$|\vec p|$ [GeV]", r"$p_T$ [GeV]"]
+    labels = [f"Energy [{unit_label}]", r"$|\vec p|$ [%s]" % unit_label, r"$p_T$ [%s]" % unit_label]
     handles, labels_leg = [], []
 
     for ax, key, lbl in zip(axes, ["energy", "momentum", "pt"], labels):
         for i, (mode, vals) in enumerate(data_by_mode.items()):
             style = styles[i % len(styles)]
-            arr = flatten_vals(vals.get(key, []))
+            arr = flatten_vals(vals.get(key, [])) * energy_scale
             print(f"{mode}: {len(arr)} entries for {key}")  
             h = ax.hist(arr, bins=edges, histtype="step", label=mode, **style)
             if ax is axes[0]:
@@ -766,7 +775,7 @@ def plot_kinematics_overlay_full(
         ax.set_yscale("log")
         ax.grid(True, ls="--", alpha=0.7)
 
-    fig.text(0.07, 0.5, f"Events / {bin_w:.0f} GeV", va='center', rotation='vertical', fontsize=label_fontsize)
+    fig.text(0.07, 0.5, f"Events / {bin_w:.2f} {unit_label}", va='center', rotation='vertical', fontsize=label_fontsize)
     fig.legend(handles, labels_leg, loc="upper center", ncol=len(labels_leg), fontsize=26, frameon=False)
     plt.subplots_adjust(top=0.85, wspace=0.35)
     if output_file_prefix:
@@ -778,22 +787,27 @@ def plot_kinematics_overlay_full(
     num_bins_xyz = 50
     all_xyz = []
     for mdat in data_by_mode.values():
-        all_xyz.extend(mdat["px"] + mdat["py"] + mdat["pz"])
-    edges_xyz = np.linspace(min(all_xyz), max(all_xyz), num_bins_xyz + 1)
+        all_xyz.extend((np.array(mdat["px"]) * energy_scale).tolist())
+        all_xyz.extend((np.array(mdat["py"]) * energy_scale).tolist())
+        all_xyz.extend((np.array(mdat["pz"]) * energy_scale).tolist())
+    if len(all_xyz) == 0:
+        edges_xyz = np.linspace(-1, 1, num_bins_xyz + 1)
+    else:
+        edges_xyz = np.linspace(min(all_xyz), max(all_xyz), num_bins_xyz + 1)
     bin_w_xyz = nice_bin_label(edges_xyz[1] - edges_xyz[0])
 
     fig, axes = plt.subplots(1, 3, figsize=(21, 6), sharey=True)
-    xyz_labels = [r"$p_x$ [GeV]", r"$p_y$ [GeV]", r"$p_z$ [GeV]"]
+    xyz_labels = [r"$p_x$ [%s]" % unit_label, r"$p_y$ [%s]" % unit_label, r"$p_z$ [%s]" % unit_label]
     for ax, key, lbl in zip(axes, ["px", "py", "pz"], xyz_labels):
         for i, (mode, vals) in enumerate(data_by_mode.items()):
             style = styles[i % len(styles)]
-            arr = flatten_vals(vals.get(key, []))
+            arr = flatten_vals(vals.get(key, [])) * energy_scale
             ax.hist(arr, bins=edges_xyz, histtype="step", **style)
         draw_stats_boxes(ax, data_by_mode, key)
         ax.set_xlabel(lbl, fontsize=label_fontsize)
         ax.grid(True, ls='--', alpha=0.7)
 
-    fig.text(0.07, 0.5, f"Events / {bin_w_xyz:.0f} GeV", va='center', rotation='vertical', fontsize=label_fontsize)
+    fig.text(0.07, 0.5, f"Events / {bin_w_xyz:.2f} {unit_label}", va='center', rotation='vertical', fontsize=label_fontsize)
     plt.subplots_adjust(top=0.85, wspace=0.35)
     if output_file_prefix:
         plt.savefig(f"{output_file_prefix}_pxpypz_overlay.{file_format}", bbox_inches="tight")
@@ -817,7 +831,7 @@ def plot_kinematics_overlay_full(
         if scale=="log": ax.set_yscale("log")
         ax.grid(True, ls='--', alpha=0.7)
 
-    fig.text(0.06, 0.5, f"Events / {bin_w_eta:.1f}", va='center', rotation='vertical', fontsize=label_fontsize)
+    fig.text(0.06, 0.5, f"Events / {bin_w_eta:.2f}", va='center', rotation='vertical', fontsize=label_fontsize)
     plt.subplots_adjust(top=0.85, wspace=0.35)
     if output_file_prefix:
         plt.savefig(f"{output_file_prefix}_eta_overlay.{file_format}", bbox_inches="tight")

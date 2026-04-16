@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=lhe_para
-#SBATCH --output=logs/%A_%a.out
-#SBATCH --error=logs/%A_%a.err
-#SBATCH --array=1-3
+#SBATCH --job-name=PartialOut
+#SBATCH --output=logs/PartialOut/%A_%a.out
+#SBATCH --error=logs/PartialOut/%A_%a.err
+#SBATCH --array=1-27         # How many files then divide by 10 (files_per_task). Can be kept large to avoid constant chaning.
+#SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
 
-# Adjust this based on how many files you want per job
-export FILES_PER_TASK=1
-
-# before: array=1-45, FILES_PER_TASK=10
+# How many files you want per job
+export FILES_PER_TASK=10
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate DRToM
