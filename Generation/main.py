@@ -56,11 +56,62 @@ def clear_console():
     else:
         os.system("clear")
 
+
+# ==============
+# Helper functions 
+# ==============
+
+# Import configuration and functions after environment overrides
+import configuration as cfg
+import functions as fns
+import tarfile
+import json
+
+
+def format_bound(x):
+    return f"{int(round(x * 10)):03d}"
+
+def format_tev(x):
+    return f"{x:.1f}".replace(".", "p")
+
+def build_mc_dir(cfg, dsid, lower, upper):
+    tev = format_tev(cfg.sqrts / 1e3)
+
+    L = format_bound(lower)
+    U = format_bound(upper)
+
+    return (
+        f"mc23_{tev}TeV."
+        f"{dsid}.STRPy8EG_STR_{cfg.dimensionality}_"
+        f"O{cfg.Npartons}_L_{L}_U_{U}.evgen.TXT.e0000"
+    )
+
+def build_base_dir(cfg):
+    tev = format_tev(cfg.sqrts / 1e3)
+    return f"TeV{tev}_{cfg.dir_tag}"
+
+def next_available_event_file(directory, dsid, it, max_tries=1000):
+    for i in range(it, it + max_tries):
+        candidate = os.path.join(
+            directory,
+            f"TXT.{dsid}_{i:06d}.events"
+        )
+        if not os.path.exists(candidate):
+            return candidate
+    raise FileExistsError("No available filename found.")
+
+def get_dsid(dsid_map, dim, window_name):
+    return dsid_map[dim][window_name]
+
+# ===========
 # Main loop 
+# ===========
 if __name__ == "__main__":
-    # Import configuration and functions after environment overrides
-    import configuration as cfg
-    import functions as fns
+
+    DSID_MAP_PATH = "/hepusers2/fuscomus/DRToM/DSID/dsid_map_0.1.json"
+
+    with open(DSID_MAP_PATH, "r") as f:
+        dsid_map = json.load(f)
 
     start_time = time.time()
     params = {
@@ -78,20 +129,18 @@ if __name__ == "__main__":
         'dimensionality':  cfg.dimensionality,
     }
 
-    # Print generation info
-    print()
-    print(f"Running 2 → {cfg.Npartons} {cfg.output_type} with {cfg.N_events} events.")
-    active = [fns.pretty_names_2to2[k] for k, (_, _, _, is_active) in cfg.process_map.items() if is_active]
-    print("Active subprocesses:", ", ".join(active))
-    print()
-
     # Process counters
     global_interaction_counter = Counter()
     global_full_process_counter = Counter()
 
-    print(f"Creating events with dimensionality = {cfg.dimensionality}D")
-    summary_out = os.path.join(cfg.summary_dir)
-    os.makedirs(summary_out, exist_ok=True)
+    # Print generation info
+    print()
+    print(f"Running 2 → {cfg.Npartons} {cfg.output_type} with {cfg.N_events} events.")
+    active = [fns.pretty_names_2to2[k] for k, (_, _, _, is_active) in cfg.process_map_full.items() if is_active]
+    print("Active subprocesses:", ", ".join(active))
+    print()
+    print(f"Creating events with dimensionality = {cfg.dimensionality}")
+    print()
 
     # Use integer stepping to avoid floating-point accumulation errors from np.arange
     n_steps = int(round((cfg.End - cfg.Start) / cfg.Step))
@@ -100,22 +149,26 @@ if __name__ == "__main__":
     for i in range(n_steps):
         min_mass_TeV = cfg.Start + i * cfg.Step
         max_mass_TeV = min_mass_TeV + cfg.Step
-        window_name = f"{min_mass_TeV:.1f}to{max_mass_TeV:.1f}"
+        dim_key = cfg.dimensionality
+        window_name = f"{round(min_mass_TeV,1):.1f}to{round(max_mass_TeV,1):.1f}"
+        DSID = get_dsid(dsid_map, dim_key, window_name)
 
-        print(f"\u2B24 Starting {window_name} TeV")
+        base_dir = build_base_dir(cfg)
 
-        # Ensure output directory exists and construct lab file path
-        out_dir = cfg.data_dir
+        mc_dir = build_mc_dir(
+            cfg,
+            dsid=DSID,
+            lower=min_mass_TeV,
+            upper=max_mass_TeV
+        )
+
+        out_dir = os.path.join("LHEF", base_dir, mc_dir)
         os.makedirs(out_dir, exist_ok=True)
 
-        # Choose next available filename like '<window>_1.lhe', '<window>_2.lhe', ...
-        def next_available_lhe(directory, base_name, start_index=1, max_tries=1000):
-            # Try preferred index first, otherwise return first free slot >= start_index
-            for i in range(start_index, start_index + max_tries):
-                candidate = os.path.join(directory, f"{base_name}_{i:02d}.lhe")
-                if not os.path.exists(candidate):
-                    return candidate
-            raise FileExistsError(f"No available filename for {base_name} in {directory} after {max_tries} tries")
+        summary_dir = os.path.join("Summary", base_dir, mc_dir)
+        os.makedirs(summary_dir, exist_ok=True)
+
+        print(f"\u2B24 Starting {window_name} TeV")
 
         base_name = f"{window_name}"
         # Determine iterations (CLI override -> env -> default 1)
@@ -127,15 +180,20 @@ if __name__ == "__main__":
 
         # Run multiple MC generations per window, producing _01, _02, ... files
         for it in range(1, iterations + 1):
-            lab_file = next_available_lhe(out_dir, base_name, start_index=it)
+            lab_file = next_available_event_file(out_dir, DSID, it)
             dirs = {'lab_file': lab_file}
 
             print(f"\u2B24 Starting {window_name} TeV (iteration {it}/{iterations})")
 
             result = fns.generate_events(cfg.dimensionality, min_mass_TeV, max_mass_TeV, cfg.N_events,
-                                            params, dirs, cfg.process_map)
+                                            params, dirs, cfg.process_map_full)
 
-            summary_filename = os.path.join(summary_out, f"summary_{window_name}_{it:02d}.txt")
+            # Create tar.gz archive of the .events file
+            tar_file = lab_file.replace(".events", ".tar.gz")
+            with tarfile.open(tar_file, "w:gz") as tar:
+                tar.add(lab_file, arcname=os.path.basename(lab_file))
+
+            summary_filename = os.path.join(summary_dir, f"summary_{window_name}_{it:02d}.txt")
             with open(summary_filename, "w") as f:
                 f.write(f"\n=== Slice {min_mass_TeV}-{max_mass_TeV} TeV Summary (iter {it}) ===\n\n")
                 f.write(fns.format_summary(

@@ -1,9 +1,5 @@
 import os
 import numpy as np
-#import lhapdf
-#import random
-#import re
-#from collections import Counter
 
 #=======================================================================
 #=========================== RANDOM STUFF ==============================
@@ -24,7 +20,7 @@ GeV2TeV = 1e-3
 # Global event parameters
 # These will all be overridden if corresponding cluster_* env vars are set
 event_settings = {
-    "yMax": 2.5,               # Maximum rapidity
+    "yMax": 20,               # Maximum rapidity
     "Npartons": 4,             # Number of final state partons, can be 2,3,4,5
     "sqrts": 13.6 * TeV2GeV,     # Proton CoM energy (GeV)
 
@@ -96,7 +92,7 @@ def _apply_env_overrides():
         if dim_env.endswith("d"):
             dim_env = dim_env[:-1]
         if dim_env in ("2", "3"):
-            event_settings["dimensionality"] = int(dim_env)
+            event_settings["dimensionality"] = f"{dim_env}D"
         else:
             raise ValueError(f"CLUSTER_DIM malformed: {os.getenv('CLUSTER_DIM')}")
 
@@ -123,12 +119,12 @@ process_map = {
 }
 
 # Expansion to full format [ process name -> (folder, ME function, process ID, active or not) ]
-process_map = {
+process_map_full = {
     name: (name, f"M2_{name}", pid, active)
     for name, (pid, active) in process_map.items()
 }
 
-all_subprocesses = list(process_map.keys())
+all_subprocesses = list(process_map_full.keys())
 
 
 #===========================================================================
@@ -165,37 +161,11 @@ else:
 #==================================================================
 
 # Find all active subprocesses
-active_processes = [(key, folder, ME_func, lprup) for key, (folder, ME_func, lprup, active) in process_map.items() if active]
+active_processes = [(key, folder, ME_func, lprup) for key, (folder, ME_func, lprup, active) in process_map_full.items() if active]
 if not active_processes:
-    raise ValueError("No active process found in process_map.")
+    raise ValueError("No active process found in process_map_full.") 
 
-# Base directory: CoM energy choice 
-CoM_energy_TeV = sqrts/1e3
-CoM_energy_label = format(CoM_energy_TeV, '.1f').replace('.', 'p') # (e.g. 13.0 -> 13p0)
-CoM_dir = f"TeV{CoM_energy_label}"
+dir_tag = "22000" # Used in def build_base_dir in main.py
 
-# Dimension directory 
 dimensionality = event_settings.get("dimensionality", 2)
-if dimensionality == 2:
-    dim_dir = "2D"
-elif dimensionality == 3:
-    dim_dir = "3D"
-else:
-    raise ValueError("Invalid dimensionality setting. Must be either 2 or 3.")
-
-# Partons output directory
 output_type = event_settings["output_type"]
-if Npartons == 2:
-    if output_type == "PS":
-        out_dir = f"2to{Npartons}"
-    elif output_type == "QCD":
-        out_dir = f"2to{Npartons}_QCD"
-    else:
-        raise ValueError(f"Invalid output_type: {output_type}")
-elif Npartons in [3,4,5]:
-    out_dir = f"2to{Npartons}"
-else:
-    raise ValueError(f"Unsupported Npartons: {Npartons}")
-
-data_dir = os.path.join("Data", CoM_dir, dim_dir, out_dir)
-summary_dir = os.path.join("Summary", CoM_dir, dim_dir, out_dir)

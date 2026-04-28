@@ -12,12 +12,12 @@ sys.path.insert(0, "/hepusers2/fuscomus/DRToM")
 
 # =================================================
 
-tag = "220"
-base_path = f"/hepusers2/fuscomus/DRToM/Data_{tag}"
-energy_folder = "TeV13p0"    # Options: TeV13p0, TeV13p6
+tag = "10000_gg2gg_QCD"
+base_path = "/hepusers2/fuscomus/DRToM/Data"
+energy_folder = f"TeV13p0_{tag}"    # Options: TeV13p0, TeV13p6
 dimensionality_2D = "2D"
 dimensionality_3D = "3D"
-what_process = "2to4"        # Options: 2to2, 2to3, 2to4, 2to5
+what_process = "2to2"        # Options: 2to2, 2to3, 2to4, 2to5
 
 Start = 2.0                 # What is the start of the generation range (TeV)
 End = 11.0                  # What is the end of the generation range (TeV)
@@ -68,7 +68,7 @@ lhe_3D_set = (base_path, energy_folder, dimensionality_3D, what_process)
 # --- Helper: write a plain file list for cluster processing ---
 # This writes one LHE path per line to the .txt file 
 base_path = "/hepusers2/fuscomus/DRToM/Analysis"
-file_list_path = os.path.join(base_path, "ClusterData", "FileLists", f"{energy_folder}_{tag}", what_process, f"DR_{DR_scale}", f"{Start}_{End}_{Step}.txt")
+file_list_path = os.path.join(base_path, "ClusterData", "FileLists", energy_folder, what_process, f"DR_{DR_scale}", f"{Start}_{End}_{Step}.txt")
 os.makedirs(os.path.dirname(file_list_path), exist_ok=True)
 with open(file_list_path, "w") as _f:
     for p in local_lhe_files:

@@ -5,14 +5,14 @@ import sys
 # Make paths relative to this script so SLURM/current working dir doesn't matter
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-tag = "220"
+tag = "10000_gg2gg_QCD"
 energy_folder = f"TeV13p0_{tag}"
-what_process = "2to4"
+what_process = "2to2"
 Start = 2.0
 End = 11.0
 Step = 0.1
-# DR_scale = "2.0, 11.0"
-DR_scale = "2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0"
+DR_scale = "2.0, 11.0"
+# DR_scale = "2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0"
 
 FILES_PER_TASK = int(os.environ.get("FILES_PER_TASK", 10))
 TASK_ID = int(os.environ.get("SLURM_ARRAY_TASK_ID", 1)) - 1

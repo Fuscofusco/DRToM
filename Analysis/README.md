@@ -1,6 +1,10 @@
+
+In here is kind of a shmorgishborg of everything that I have been doing. As of writing this it has not been updated to work with the new data structure. 
+
+
 ## DimensionalReduction.py 
 
-This is not the best name for this area, but oh well. This is all the analysis functions I made and used throughout the first year of my thesis. I would not recomend looking at all the functions here for two reason: (1) there are a lot and many are not used, (2) it is a mess with little organization. 
+This is all the analysis functions I made and used throughout the first year of my thesis. I would not recomend looking at all the functions here for two reason: (1) there are a lot and many are not used or redundant or just outright bad, (2) it is a mess with little organization. 
 
 Within the scripts below I call to several functions in this area, so I would stick to looking at the relevant ones as needed. 
 
@@ -13,7 +17,7 @@ Since we are using larger datasets, this is broken up into many steps.
 
 Start in `make_DR_list.py` and make the file list for what DR scale you want. Note to add an appropriate tag so that you can track the data easier. 
 
--This outputs in ClusterData/FileLists under the appropriate energy/process/DR folder 
+- This outputs in ClusterData/FileLists under the appropriate energy/process/DR folder 
 
 Go to `worker_jobs.py` and change all the input information at the top to make sure it is pointing to the proper file list. Check `worker_jobs.slurm` to make sure there is a proper amount of arrays and file per task.
 
@@ -34,7 +38,6 @@ With the merged files, we can run the analysis. This is done in `kinematics.py` 
 ## PDF_Plotting.ipynb 
 
 All this is doing is plotting some PDF related physics and should be easy enough to follow as is (no markdowns). 
-
 
 ## Biplanarity Study 
 

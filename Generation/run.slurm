@@ -1,15 +1,18 @@
 #!/bin/bash
 #SBATCH --job-name=DRToM
-#SBATCH --output=logs/TeV13p0_220/%A_%a.out
-#SBATCH --error=logs/TeV13p0_220/%A_%a.err
-#SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
+#SBATCH --output=logs/test/%A_%a.out
+#SBATCH --error=logs/test/%A_%a.err
+
+
+# #SBATCH --nodelist=thuner-gw32,thuner-gw34  # Run only on these nodes 
+# #SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
 
 # ----------------------------
 # Environment
 # ----------------------------
 # SBATCH --cpus-per-task=8 ---- This is what was stopping the use of all the nodes being run at the same time so don't use it!!!
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate lhapdf39
+conda activate Analysis # This has should have LHAPDF installed with the desired PDF
 
 # ----------------------------
 # Load scan parameters
@@ -24,8 +27,6 @@ IFS=, read -r -a CM_ENERGIES <<< "$CLUSTER_CM_ENERGY_LIST"
 
 TOTAL=$CLUSTER_TOTAL
 
-# ----------------------------
-# Sanity check
 # ----------------------------
 # Sanity check
 # ----------------------------

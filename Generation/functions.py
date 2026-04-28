@@ -1184,9 +1184,9 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
             if params['Npartons'] in [3,4,5]:
                 # Always phase space for 2→3,4,5
-                if dimensionality == 3: 
+                if dimensionality == "3D": 
                     outgoing_particles_CoM = phase3(params['Npartons'], M) 
-                elif dimensionality == 2:
+                elif dimensionality == "2D":
                     random_choice = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
                     outgoing_particles_CoM = phase3(params['Npartons'], M) if random_choice else phase2(params['Npartons'], M)
                 else:
@@ -1197,9 +1197,9 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
             elif params['Npartons'] == 2:
                 if output_type == "PS":
                     # 2→2 Phase space
-                    if dimensionality == 3: 
+                    if dimensionality == "3D": 
                         outgoing_particles_CoM = phase3(params['Npartons'], M) 
-                    elif dimensionality == 2:
+                    elif dimensionality == "2D":
                         random_choice = np.random.binomial(1, params['DR_prob']) if params['DR_flag'] else 0
                         outgoing_particles_CoM = phase3(params['Npartons'], M) if random_choice else phase2(params['Npartons'], M)
                     else:

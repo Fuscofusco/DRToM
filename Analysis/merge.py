@@ -21,8 +21,8 @@ random.seed(42)
 # 1️⃣ Project imports
 # =================================================
 sys.path.insert(0, "/hepusers2/fuscomus/DRToM")
-import functions as fns
-import configuration as cfg
+import DRToM.Generation.functions as fns
+import DRToM.Generation.configuration as cfg
 import DimensionalReduction as dr
 importlib.reload(fns)
 importlib.reload(cfg)
@@ -31,11 +31,12 @@ importlib.reload(dr)
 # =================================================
 # 2️⃣ Safety: required variables and directories
 # =================================================
-tag = "220"
+tag = "10000_NoEtaCut"  
 energy_folder = f"TeV13p0_{tag}"
 what_process = "2to4"
-DR_scales = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]
-# DR_scales = [2.0, 3.0, 11.0]
+# DR_scales = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]
+# DR_scales = [2.0, 11.0]
+DR_scales = [6.0, 7.0]
 
 # -------------------------
 # CLI / SLURM integration
@@ -62,8 +63,8 @@ elif args.index is not None:
 # Iterate over each DR scale and merge files found under its folder.
 def process_scale(dr):
     print(f"[INFO] Processing DR = {dr}")
-    outdir_base = os.path.join("Plots", energy_folder, what_process, f"DR_{dr}")
-    os.makedirs(outdir_base, exist_ok=True)
+    # outdir_base = os.path.join("Plots", energy_folder, what_process, f"DR_{dr}")
+    # os.makedirs(outdir_base, exist_ok=True)
 
     files = sorted(glob.glob(f"ClusterData/PartialOutputs/{energy_folder}/{what_process}/DR_{dr}/*.pkl"))
     if not files:

@@ -1,11 +1,10 @@
 # Ignore large data
-Data/
+LHEF*/
+Storage*/
 Data*/
-TeV13p0/
-TeV13p6/
-logs/
+TeV13p*/
+logs*/
 Misc/
-Summary/
 Summary*/
 
 # Ignore some stuff in Analysis 

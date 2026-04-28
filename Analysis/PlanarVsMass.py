@@ -8,10 +8,10 @@ from matplotlib.ticker import AutoMinorLocator
 # =================================================
 # SETTINGS
 # =================================================
-tag = "11000"
+tag = "10000_NoEtaCut"
 energy_folder = f"TeV13p0_{tag}"
 what_process = "2to4"
-frame_choice = "CoM"
+frame_choice = "lab" # "lab" or "CoM"
 
 base_dir = f"ClusterData/MergedOutputs/{energy_folder}/{what_process}"
 

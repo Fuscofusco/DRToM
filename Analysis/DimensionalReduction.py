@@ -525,7 +525,7 @@ def plot_kinematics(
     theta=None,
     output_file_prefix=None, file_format='png'
 ):
-    label_fontsize = 16
+    label_fontsize = 20
 
     def format_bin_width(val, unit):
         """Format bin width nicely depending on scale."""
@@ -560,7 +560,7 @@ def plot_kinematics(
         ax.set_ylabel(f"Events / {format_bin_width(bin_w, unit_label)}", fontsize=label_fontsize)
         ax.set_yscale('log')
         ax.grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(ax, data, bins_)
+        # annotate_stats(ax, data, bins_)
     plt.tight_layout()
     if output_file_prefix:
         plt.savefig(f"{output_file_prefix}_eppt.{file_format}", bbox_inches="tight")
@@ -585,7 +585,7 @@ def plot_kinematics(
         ax.set_xlabel(lbl, fontsize=label_fontsize)
         ax.set_ylabel(f"Events / {format_bin_width(bin_w, unit_label)}", fontsize=label_fontsize)
         ax.grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(ax, data, bins_)
+        # annotate_stats(ax, data, bins_)
     plt.tight_layout()
     if output_file_prefix:
         plt.savefig(f"{output_file_prefix}_pxpypz.{file_format}", bbox_inches="tight")
@@ -606,14 +606,14 @@ def plot_kinematics(
     axes[0].set_xlabel(r'$\eta$', fontsize=label_fontsize)
     axes[0].set_ylabel(f"Events / {format_bin_width(bin_w_eta, '')}", fontsize=label_fontsize)
     axes[0].grid(True, linestyle='--', alpha=0.7)
-    annotate_stats(axes[0], eta, bins_, include_flow=True)
+    # annotate_stats(axes[0], eta, bins_, include_flow=True)
     # log
     c2, _, _ = axes[1].hist(eta, bins=edges_eta, color='green', alpha=0.7,
                             edgecolor='gray', linewidth=1.2)
     axes[1].set_xlabel(r'$\eta$', fontsize=label_fontsize)
     axes[1].set_yscale("log")
     axes[1].grid(True, linestyle='--', alpha=0.7)
-    annotate_stats(axes[1], eta, edges_eta, include_flow=True)
+    # annotate_stats(axes[1], eta, edges_eta, include_flow=True)
     plt.tight_layout()
     if output_file_prefix:
         plt.savefig(f"{output_file_prefix}_eta.{file_format}", bbox_inches="tight")
@@ -642,7 +642,7 @@ def plot_kinematics(
         axes[0].set_xlabel(r'$\theta$ [rad]', fontsize=label_fontsize)
         axes[0].set_ylabel(f"Events / {format_bin_width(bin_w_theta, 'rad')}", fontsize=label_fontsize)
         axes[0].grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(axes[0], theta, edges, include_flow=True)
+        # annotate_stats(axes[0], theta, edges, include_flow=True)
     else:
         axes[0].text(0.5, 0.5, "No θ", ha='center', va='center')
 
@@ -654,7 +654,7 @@ def plot_kinematics(
         axes[1].set_xlabel(r'$\phi$ [rad]', fontsize=label_fontsize)
         axes[1].set_ylabel(f"Events / {format_bin_width(bin_w_phi, 'rad')}", fontsize=label_fontsize)
         axes[1].grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(axes[1], phi, edges_phi, include_flow=True)
+        # annotate_stats(axes[1], phi, edges_phi, include_flow=True)
     else:
         axes[1].text(0.5, 0.5, "No φ", ha='center', va='center')
 
@@ -670,8 +670,6 @@ def plot_kinematics_overlay_full(
     output_file_prefix=None,
     file_format='png'
 ):
-    import numpy as np
-    import matplotlib.pyplot as plt
 
     styles = [
         dict(color="black",  linewidth=0.75, linestyle="-"),
@@ -680,7 +678,7 @@ def plot_kinematics_overlay_full(
         dict(color="blue",   linewidth=1, linestyle=":"),
         dict(color="gold",   linewidth=1, linestyle="-."),
     ]
-    label_fontsize = 16
+    label_fontsize = 20
     # Convert GeV -> TeV for these kinematic plots
     energy_scale = 1.0 / 1000.0
     unit_label = "TeV"
@@ -770,7 +768,7 @@ def plot_kinematics_overlay_full(
             if ax is axes[0]:
                 handles.append(h[2][0])
                 labels_leg.append(mode)
-        draw_stats_boxes(ax, data_by_mode, key)
+        # draw_stats_boxes(ax, data_by_mode, key)
         ax.set_xlabel(lbl, fontsize=label_fontsize)
         ax.set_yscale("log")
         ax.grid(True, ls="--", alpha=0.7)
@@ -803,7 +801,7 @@ def plot_kinematics_overlay_full(
             style = styles[i % len(styles)]
             arr = flatten_vals(vals.get(key, [])) * energy_scale
             ax.hist(arr, bins=edges_xyz, histtype="step", **style)
-        draw_stats_boxes(ax, data_by_mode, key)
+        # draw_stats_boxes(ax, data_by_mode, key)
         ax.set_xlabel(lbl, fontsize=label_fontsize)
         ax.grid(True, ls='--', alpha=0.7)
 
@@ -826,7 +824,7 @@ def plot_kinematics_overlay_full(
             style = styles[i % len(styles)]
             arr = flatten_vals(vals.get("eta", []))
             ax.hist(arr, bins=edges_eta, histtype="step", **style)
-        draw_stats_boxes(ax, data_by_mode, "eta", bin_edges=edges_eta, include_flow=True)
+        # draw_stats_boxes(ax, data_by_mode, "eta", bin_edges=edges_eta, include_flow=True)
         ax.set_xlabel(r"$\eta$", fontsize=label_fontsize)
         if scale=="log": ax.set_yscale("log")
         ax.grid(True, ls='--', alpha=0.7)
@@ -860,7 +858,7 @@ def plot_kinematics_overlay_full(
     for i, (mode, vals) in enumerate(data_by_mode.items()):
         style = styles[i % len(styles)]
         ax_theta.hist(flatten_vals(vals.get("theta", [])), bins=theta_edges, histtype="step", **style)
-    draw_stats_boxes(ax_theta, data_by_mode, "theta", bin_edges=theta_edges, include_flow=True)
+    # draw_stats_boxes(ax_theta, data_by_mode, "theta", bin_edges=theta_edges, include_flow=True)
     ax_theta.set_xlabel(r"$\theta$ [rad]", fontsize=label_fontsize)
     ax_theta.set_ylabel(f"Events / {bin_w_theta:.2f} rad", fontsize=label_fontsize)
     ax_theta.grid(True, ls='--', alpha=0.7)
@@ -870,7 +868,7 @@ def plot_kinematics_overlay_full(
         style = styles[i % len(styles)]
         cos_vals = np.cos(flatten_vals(vals.get("theta", [])))  # transform
         ax_costh.hist(cos_vals, bins=cos_edges, histtype="step", **style)
-    #draw_stats_boxes(ax_costh, data_by_mode, "theta", bin_edges=cos_edges, include_flow=True)
+    # draw_stats_boxes(ax_costh, data_by_mode, "theta", bin_edges=cos_edges, include_flow=True)
     ax_costh.set_xlabel(r"$\cos\theta$", fontsize=label_fontsize)
     ax_costh.set_ylabel(f"Events / {bin_w_cos:.2f}", fontsize=label_fontsize)
     ax_costh.grid(True, ls='--', alpha=0.7)
@@ -879,7 +877,7 @@ def plot_kinematics_overlay_full(
     for i, (mode, vals) in enumerate(data_by_mode.items()):
         style = styles[i % len(styles)]
         ax_phi.hist(flatten_vals(vals.get("phi", [])), bins=phi_edges, histtype="step", **style)
-    draw_stats_boxes(ax_phi, data_by_mode, "phi", bin_edges=phi_edges, include_flow=True)
+    # draw_stats_boxes(ax_phi, data_by_mode, "phi", bin_edges=phi_edges, include_flow=True)
     ax_phi.set_xlabel(r"$\phi$ [rad]", fontsize=label_fontsize)
     ax_phi.set_ylabel(f"Events / {bin_w_phi:.2f} rad", fontsize=label_fontsize)
     ax_phi.grid(True, ls='--', alpha=0.7)
@@ -899,7 +897,7 @@ def plot_jet_differences(delta_eta, delta_theta, delta_phi=None,
     normalised to events/bin width, with a stats box on each plot.
     """
 
-    label_fontsize = 16
+    label_fontsize = 20
     bin_width = 0.2  # for Δη and Δθ; Δφ can have smaller bins if desired
 
     # ---- Δη ----
@@ -915,7 +913,7 @@ def plot_jet_differences(delta_eta, delta_theta, delta_phi=None,
         ax_eta.set_xlabel(r'$\Delta \eta$', fontsize=label_fontsize)
         ax_eta.set_ylabel(f"Events / {bin_width}", fontsize=label_fontsize)
         ax_eta.grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(ax_eta, delta_eta, eta_edges)
+        # annotate_stats(ax_eta, delta_eta, eta_edges)
 
         plt.tight_layout()
         if output_file_prefix:
@@ -938,7 +936,7 @@ def plot_jet_differences(delta_eta, delta_theta, delta_phi=None,
         ax_th.set_xlabel(r'$\Delta \theta$ [rad]', fontsize=label_fontsize)
         ax_th.set_ylabel(f"Events / {bin_width} rad", fontsize=label_fontsize)
         ax_th.grid(True, linestyle='--', alpha=0.7)
-        annotate_stats(ax_th, delta_theta, th_edges)
+        # annotate_stats(ax_th, delta_theta, th_edges)
 
         plt.tight_layout()
         if output_file_prefix:
@@ -959,12 +957,12 @@ def plot_jet_differences(delta_eta, delta_theta, delta_phi=None,
         fig_phi, ax_phi = plt.subplots(figsize=(6, 4))
         ax_phi.bar(phi_edges[:-1], counts / bin_width_phi, width=bin_width_phi,
                    color='orange', alpha=0.7, edgecolor='gray', linewidth=1.2)
-        ax_phi.set_xlabel(r'$\Delta \phi$ [rad]', fontsize=16)
-        ax_phi.set_ylabel(f"Events / {bin_width_phi:.3f} rad", fontsize=16)
+        ax_phi.set_xlabel(r'$\Delta \phi$ [rad]', fontsize=20)
+        ax_phi.set_ylabel(f"Events / {bin_width_phi:.3f} rad", fontsize=20)
         ax_phi.grid(True, linestyle='--', alpha=0.7)
 
         # annotate stats in default location
-        annotate_stats(ax_phi, delta_phi, phi_edges)
+        # annotate_stats(ax_phi, delta_phi, phi_edges)
 
         plt.tight_layout()
         if output_file_prefix:
@@ -1599,7 +1597,7 @@ def calc_EventVars(four_mom, spatial_mom, sort_by='pT', mode=None, verbose=False
 #========================= EVENT SHAPE PLOTTING ========================
 #=======================================================================
 
-def save_individual_plot(data, xlabel, ylabel, title, filename, file_format='pdf', label_fontsize=16, tick_fontsize=16, xlim=None, ylim=None):
+def save_individual_plot(data, xlabel, ylabel, title, filename, file_format='pdf', label_fontsize=20, tick_fontsize=16, xlim=None, ylim=None):
     """Helper function to save individual plots."""
     fig = plt.figure(figsize=(7, 6))
     plt.hist(data, bins=50, color='blue', alpha=0.7, edgecolor='gray', linewidth=1.2)
@@ -1621,7 +1619,7 @@ def save_individual_plot(data, xlabel, ylabel, title, filename, file_format='pdf
 
 
 def plot_event_variables(S, A, S_T, Y, C, D, Thrust_T, Thrust_m, tau, B, output_file_prefix=None, file_format='pdf', show_group=True):
-    label_fontsize = 16
+    label_fontsize = 20
     tick_fontsize = 16
     marker_size = 20
     title_fontsize = 20  # Universal title font size
