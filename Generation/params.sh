@@ -10,9 +10,9 @@ WINDOW_START=2               # Starting mass (TeV) for slice
 WINDOW_END=11                 # Ending mass (TeV) for slice
 WINDOW_STEP=0.1                # Step size (TeV) 
 
-WINDOW_EVENTS=22000        # Number of events per slice 
+WINDOW_EVENTS=10        # Number of events per slice 
 
-ITERATIONS=5             # Number of iterations for the main loop 
+ITERATIONS=2             # Number of iterations for the main loop 
 
 # === Build generation slices e.g. "2.00:3.00", "3.00:4.00", ... ===
 WINDOWS=()

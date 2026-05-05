@@ -67,6 +67,7 @@ import functions as fns
 import tarfile
 import json
 
+STORAGE_DIR = "/raid/adisk06/users/fuscomus/DRToM/"
 
 def format_bound(x):
     return f"{int(round(x * 10)):03d}"
@@ -162,10 +163,10 @@ if __name__ == "__main__":
             upper=max_mass_TeV
         )
 
-        out_dir = os.path.join("LHEF", base_dir, mc_dir)
+        out_dir = os.path.join(STORAGE_DIR, "LHEF", base_dir, mc_dir)
         os.makedirs(out_dir, exist_ok=True)
 
-        summary_dir = os.path.join("Summary", base_dir, mc_dir)
+        summary_dir = os.path.join(STORAGE_DIR, "Summary", base_dir, mc_dir)
         os.makedirs(summary_dir, exist_ok=True)
 
         print(f"\u2B24 Starting {window_name} TeV")
@@ -188,10 +189,11 @@ if __name__ == "__main__":
             result = fns.generate_events(cfg.dimensionality, min_mass_TeV, max_mass_TeV, cfg.N_events,
                                             params, dirs, cfg.process_map_full)
 
-            # Create tar.gz archive of the .events file
+            # Create tar.gz archive of the .events file 
             tar_file = lab_file.replace(".events", ".tar.gz")
             with tarfile.open(tar_file, "w:gz") as tar:
                 tar.add(lab_file, arcname=os.path.basename(lab_file))
+            # os.remove(lab_file)  # Delete the original .events file
 
             summary_filename = os.path.join(summary_dir, f"summary_{window_name}_{it:02d}.txt")
             with open(summary_filename, "w") as f:

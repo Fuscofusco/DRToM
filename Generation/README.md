@@ -9,11 +9,11 @@ There are four sections in this readme:
 
 # (1) DATA STRUCTURE 
 
-There are several things we need to consider in the naming scheme. The data goes into \LHEF\ and within there are energy folders of e.g. TeV3p0_tag or TeV13p6_tag. The tag is for the user to decide what to do with (if there is a generation specific thing that should be noted). 
+There are several things we need to consider in the naming scheme. The data goes into raid area \LHEF\ and within there are energy folders of e.g. TeV3p0_tag or TeV13p6_tag. The tag is for the user to decide what to do with (if there is a generation specific thing that should be noted). 
 
 Within the energy folder are the different mc23_ folders. Let us consider the example 
 
-- /hepusers2/fuscomus/DRToM/Generation/LHEF/TeV13p0_test/mc23_13p0TeV.100000.STRPy8EG_STR_2D_O2_L_020_U_030.evgen.TXT.e0000
+- /hepusers2/fuscomus/DRToM/Generation/LHEF/TeV13p0_110test/mc23_13p0TeV.100000.STRPy8EG_STR_2D_O2_L_020_U_030.evgen.TXT.e0000
 
 We note the important quantities after mc23_: 
 
@@ -26,7 +26,7 @@ We note the important quantities after mc23_:
 
 Within these folders are the lhe files (labelled as .events) and tar.gz's which have their respective .events in them and are needed for the hadronization step. 
 
-The Summary folder has the same structure as above, but instead of .lhe files, there are .txt files that contain the event generation summary. This is mainly used in the Analysis part for ID counting. 
+The Summary folder has the same structure as above, but instead of lhe files, there are .txt files that contain the event generation summary. This is mainly used in the Analysis part for ID counting. 
 
 --- 
 
