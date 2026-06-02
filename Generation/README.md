@@ -1,32 +1,32 @@
 # INFO 
 
-There are four sections in this readme: 
-- (1) DATA STRUCTURE for a quick debrief on how the data is stored 
-- (2) MAIN THREE which are the main scripts used to run the generator 
-- (3) CLUSTER THREE which are the main cluster scripts
+Main sections in this readme: 
+- (1) **DATA STRUCTURE** for a quick debrief on how the data is stored 
+- (2) **MAIN THREE** which are the main scripts used to run the generator 
+- (3) **CLUSTER THREE** which are the main cluster scripts
 
 --- 
 
 # (1) DATA STRUCTURE 
 
-There are several things we need to consider in the naming scheme. The data goes into raid area \LHEF\ and within there are energy folders of e.g. TeV3p0_tag or TeV13p6_tag. The tag is for the user to decide what to do with (if there is a generation specific thing that should be noted). 
+There are several things we need to consider in the naming scheme. The data goes into the \raid\ area in \LHEF\ and within there are energy folders that are named like TeV3p0_tag or TeV13p6_tag. The tag is for the user to decide (if there is a generation specific thing that should be noted, e.g. how many events per energy slice). 
 
 Within the energy folder are the different mc23_ folders. Let us consider the example 
 
-- /hepusers2/fuscomus/DRToM/Generation/LHEF/TeV13p0_110test/mc23_13p0TeV.100000.STRPy8EG_STR_2D_O2_L_020_U_030.evgen.TXT.e0000
+- /DRToM/LHEF/TeV13p0_110/mc23_13p0TeV.100000.STRPy8EG_STR_2D_O2_L_020_U_030.evgen.TXT.e0000
 
 We note the important quantities after mc23_: 
 
-- CoM energy scale is labeled as TeV##p#, e.g. TeV13p0
-- The DSID for the specific run (made in the DRToM/DSID folder)
-- Dimensionality of the event, e.g. 2D or 3D 
+- CoM energy scale is labeled as TeV##p#, here TeV13p0
+- The DSID for the specific run (made in the DRToM/DSID folder), here 100000
+- Dimensionality of the event, e.g. 2D or 3D, here 2D
 - The number of outgoing partons in the LHE file, e.g O2 is 2 outgoing partons (so 2 to 2), O3 is 3 (so 2 to 3), and so on. 
 - The start energy of the slice; L_020 means a lower bound of 2.0 TeV.
 - The end energy of the slice; L_030 means an upper bound of 3.0 TeV 
 
-Within these folders are the lhe files (labelled as .events) and tar.gz's which have their respective .events in them and are needed for the hadronization step. 
+Within these folders are .tar.gz's that contain the lhe files (labelled as .events).
 
-The Summary folder has the same structure as above, but instead of lhe files, there are .txt files that contain the event generation summary. This is mainly used in the Analysis part for ID counting. 
+The Summary folder has the same structure as above, but instead of lhe files, there are .txt files that contain the event generation summary. This is mainly used in Analysis for ID counting. 
 
 --- 
 
@@ -38,13 +38,13 @@ This is the main configuration area for each run. Here I list the main blocks wi
 
 **Random Stuff** 
 
-Right now, if the random generated mass of the event is larger than the DR scale, then the phases space generation is spherical. Setting `DR_flag` to 1 would turn on the probabilistic case, and the liklihood is controlled by `DR_prob` which is just a binomial probability parameter.  
+Right now, if the random generated mass of the event is larger than the DR scale, then the phases space generation is spherical. Setting `DR_flag` to 1 would turn on the probabilistic case, and the liklihood is controlled by `DR_prob` which is just a binomial probability parameter.
 
 **Event Settings** 
 
 This is the main configuration block in which the generation setting can be changed, the options are self-explanitory. Note: if generating $2 \to 2$, one must choose to either generate in phase space (PS) or proper QCD kinematics (QCD). See `output_type`.
 
-After this is the Cluster parameters, which operates using the same variables but are supplied through the `params.sh` file. 
+After this is the Cluster parameters, which operate using the same variables but are supplied through the `params.sh` file. 
 
 **QCD Settings**
 
@@ -56,12 +56,12 @@ Here we take the inputs from `Event Settings` and give them proper local names w
 
 **Directories**
 
-Most important thing here is the `dir_tag` for after the TeV##p# case. 
+Most important thing here is the `dir_tag` for after the TeV##p# case. This is tied to `params.sh` DIR_TAG. 
 
 
 ## functions.py
 
-This file contains all the functions used across the generation. There are multiple sections of simple functions that have small descriptors at their top. For brevity, here I will list each section with a simple explanation
+This file contains all the functions used across the MC generation. There are multiple sections of simple functions that have small descriptors at their top. For brevity, here I will list each section with a simple explanation
 
 - **Generation Parameters**: For PDF choice and integration slices 
 - **Baseline Functions**: Double integral function and lorentz boost
@@ -82,9 +82,9 @@ This is the generators main guard. Nothing in this file needs to be changed. The
 
 # (3) CLUSTER THREE
 
-params.sh, run.slurm, submit.sh 
+These include: params.sh, run.slurm, and submit.sh 
 
-These are cluster-use helpers and aren't essential to running DRToM.
+These are cluster helpers and aren't essential to running DRToM.
 
 - params.sh is where you change the generation info and it auto-calculates the array size
 - run.slurm is what runs main.py (at the bottom with the params.sh parameters). This is where you can change the output type from QCD to PS   

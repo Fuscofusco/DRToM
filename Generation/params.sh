@@ -5,14 +5,16 @@ CM_ENERGIES=( 13.0 )    # CoM energies in TeV (13.0 13.6)
 DIMENSIONALITY_LIST=( 2 3 )          # Dimensionality of phase space (2 or 3)  
 NPARTONS_LIST=( 2 3 4 5 )          # Number of partons in the final state (2,3,4,5 allowed)
       
-
-WINDOW_START=2               # Starting mass (TeV) for slice
-WINDOW_END=11                 # Ending mass (TeV) for slice
+WINDOW_START=2.0               # Starting mass (TeV) for slice
+WINDOW_END=11.0                 # Ending mass (TeV) for slice
 WINDOW_STEP=0.1                # Step size (TeV) 
 
-WINDOW_EVENTS=10        # Number of events per slice 
+WINDOW_EVENTS=110        # Number of events per slice 
 
-ITERATIONS=2             # Number of iterations for the main loop 
+ITERATIONS=1             # Number of iterations for the main loop 
+
+DIR_TAG="110"           # Directory tag for output folder
+
 
 # === Build generation slices e.g. "2.00:3.00", "3.00:4.00", ... ===
 WINDOWS=()
@@ -45,3 +47,4 @@ export WINDOW_EVENTS
 export CLUSTER_TOTAL=$TOTAL
 export ITERATIONS
 export CLUSTER_ITERATIONS=$ITERATIONS
+export CLUSTER_DIR_TAG="$DIR_TAG"

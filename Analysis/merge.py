@@ -21,22 +21,24 @@ random.seed(42)
 # 1️⃣ Project imports
 # =================================================
 sys.path.insert(0, "/hepusers2/fuscomus/DRToM")
-import DRToM.Generation.functions as fns
-import DRToM.Generation.configuration as cfg
-import DimensionalReduction as dr
+import Generation.functions as fns
+import Generation.configuration as cfg
+import Analysis.DimensionalReduction as dr
 importlib.reload(fns)
 importlib.reload(cfg)
 importlib.reload(dr)
 
+raid_area = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
+
 # =================================================
 # 2️⃣ Safety: required variables and directories
 # =================================================
-tag = "10000_NoEtaCut"  
+tag = "110"  
 energy_folder = f"TeV13p0_{tag}"
-what_process = "2to4"
+what_process = "2to2"
 # DR_scales = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]
 # DR_scales = [2.0, 11.0]
-DR_scales = [6.0, 7.0]
+DR_scales = [6.0]
 
 # -------------------------
 # CLI / SLURM integration
@@ -66,7 +68,7 @@ def process_scale(dr):
     # outdir_base = os.path.join("Plots", energy_folder, what_process, f"DR_{dr}")
     # os.makedirs(outdir_base, exist_ok=True)
 
-    files = sorted(glob.glob(f"ClusterData/PartialOutputs/{energy_folder}/{what_process}/DR_{dr}/*.pkl"))
+    files = sorted(glob.glob(f"{raid_area}/PartialOutputs/{energy_folder}/{what_process}/DR_{dr}/*.pkl"))
     if not files:
         print(f"[WARN] No pickle files found for DR_{dr} in PartialOutputs; skipping.")
         return
@@ -140,7 +142,7 @@ def process_scale(dr):
     # =================================================
     # 6️⃣ Save merged output
     # =================================================
-    merged_output_dir = os.path.join("ClusterData", "MergedOutputs", energy_folder, what_process, f"DR_{dr}")
+    merged_output_dir = os.path.join(raid_area, "MergedOutputs", energy_folder, what_process, f"DR_{dr}")
     os.makedirs(merged_output_dir, exist_ok=True)
 
     merged_file = os.path.join(merged_output_dir, "merged.pkl")
@@ -155,7 +157,6 @@ def process_scale(dr):
         }, f)
 
     print(f"💾 Saved merged file -> {merged_file}")
-
 
 
 # Run merge for each DR scale

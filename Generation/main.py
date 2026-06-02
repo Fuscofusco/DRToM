@@ -193,7 +193,7 @@ if __name__ == "__main__":
             tar_file = lab_file.replace(".events", ".tar.gz")
             with tarfile.open(tar_file, "w:gz") as tar:
                 tar.add(lab_file, arcname=os.path.basename(lab_file))
-            # os.remove(lab_file)  # Delete the original .events file
+            os.remove(lab_file)  # Delete the original .events file
 
             summary_filename = os.path.join(summary_dir, f"summary_{window_name}_{it:02d}.txt")
             with open(summary_filename, "w") as f:

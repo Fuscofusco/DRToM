@@ -20,7 +20,7 @@ GeV2TeV = 1e-3
 # Global event parameters
 # These will all be overridden if corresponding cluster_* env vars are set
 event_settings = {
-    "yMax": 20,               # Maximum rapidity
+    "yMax": 4,               # Maximum rapidity
     "Npartons": 4,             # Number of final state partons, can be 2,3,4,5
     "sqrts": 13.6 * TeV2GeV,     # Proton CoM energy (GeV)
 
@@ -165,7 +165,7 @@ active_processes = [(key, folder, ME_func, lprup) for key, (folder, ME_func, lpr
 if not active_processes:
     raise ValueError("No active process found in process_map_full.") 
 
-dir_tag = "test" # Used in def build_base_dir in main.py
+dir_tag = os.getenv("CLUSTER_DIR_TAG", "110")  # Used in def build_base_dir in main.py
 
 dimensionality = event_settings.get("dimensionality", 2)
 output_type = event_settings["output_type"]

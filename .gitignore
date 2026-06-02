@@ -7,18 +7,16 @@ logs*/
 Misc/
 Summary*/
 
-# Ignore some stuff in Analysis 
+# Ignore stuff in Analysis 
 Analysis/functions_py_test.ipynb
 Analysis/LambdifyAndpT.ipynb
 Analysis/Plots/
 Analysis/LHE_analysis.py
 Analysis/LHE_analysis.ipynb
 Analysis/ClusterData/
-
-# This changes frequently (run parameters) so I don't need to constantly push it 
-# params.sh 
-# git update-index --skip-worktree params.sh, so GIT isn't tracking it 
-# Do: git update-index --no-skip-worktree params.sh, to start tracking again 
+Analysis/m2_values_test.py
+Analysis/BiplanarityTest.ipynb
+Analysis/make_DR_list.py
 
 # ROOT / physics outputs
 *.root

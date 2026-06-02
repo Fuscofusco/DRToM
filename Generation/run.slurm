@@ -1,8 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=DRToM
-#SBATCH --output=logs/test/%A_%a.out
-#SBATCH --error=logs/test/%A_%a.err
-
+#SBATCH --output=logs/May29_O4/%A_%a.out
+#SBATCH --error=logs/May29_O4/%A_%a.err
 
 # #SBATCH --nodelist=thuner-gw32,thuner-gw34  # Run only on these nodes 
 # #SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35

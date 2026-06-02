@@ -54,7 +54,7 @@ def boost(gamma, beta, p):
 
     m2 = E*E - np.dot(P,P)      # Invariant mass squared after boost
 
-    if m2 < -1e-6:              
+    if m2 < -9e-5:              
         raise ValueError(f"Boost produced spacelike 4-vector: m^2={m2}")
 
     if m2 < 0:                  # Tiny negative (round-off)
@@ -235,8 +235,9 @@ def QCD_2to2_outgoingkin(interaction_name, M, RandomY, Randomy, outIDs, QuarkMas
     return outgoing_particles_CoM, pt
 
 
-def check_event_physical(particles, tol=1e-6, label=""):
+def check_event_physical(particles, tol=9e-5, label=""):
     # If we generate an unphysical event it needs to be kicked out 
+    # tol needs to be around 1e-5 for 2 -> 2 generation (see test.py in Analysis area) 
     total_p = np.zeros(4)
     
     for i, p in enumerate(particles):
@@ -896,6 +897,14 @@ def QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
     that = -0.5 * M**2 * np.exp(-y) / cosh_y
     uhat = -0.5 * M**2 * np.exp(y)  / cosh_y
 
+    # # Standard minimum pT cut for QCD backgrounds. Required to stop divergences in cross sections
+    # This works, but then the generation takes forever
+    # Better to just use a ymax cut in the configs area 
+    # pT2 = (that * uhat) / shat # pT squared
+    # pT_min = 10.0 # GeV
+    # if pT2 < pT_min**2:
+    #     return 0.0, xa, xb
+
     # Matrix Element
     MSquareQCD = g3**4 * MSquaredFunc(shat, that, uhat)
 
@@ -953,47 +962,44 @@ def xs_and_colour(MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2,
     raise Exception(f"Failed to sample kinematics after {maxTries} tries.")
 
 
-def subprocess_envelopes(MinMass, MaxMass, yMax, s, MC, all_subprocesses, subprocess_combinations, PDF):
-    # Get the maxes and mins of subprocesses for selection 
-    # Edge values for cross-section envelope 
-    tauMin  = MinMass**2 / s
-    tauMax  = MaxMass**2 / s
-    YmaxMin = min(np.log(1 / np.sqrt(tauMin)), yMax)
-    YmaxMax = min(np.log(1 / np.sqrt(tauMax)), yMax)
+def QCD_envelope(parameters, M, ID1, ID2, s, MSquaredFunc):
+    Y, y = parameters
+    PDFScale = M
 
+    shat = M**2
+    cosh_y = np.cosh(y)
+
+    that = -0.5 * M**2 * np.exp(-y) / cosh_y
+    uhat = -0.5 * M**2 * np.exp(y)  / cosh_y
+
+    alpha3 = 1.0 / (1.0 / 0.118 + 7.0 / (2.0 * np.pi) * np.log(PDFScale / 91.2))
+    g3 = np.sqrt(max(0.0, 4.0 * np.pi * alpha3))
+
+    return g3**4 * MSquaredFunc(shat, that, uhat)
+
+def subprocess_envelopes(M, yMax, s, MC, all_subprocesses, subprocess_combinations, PDF):
     envelope_maxes = []
 
     for subprocess in all_subprocesses:
-        max_val = 0
-        max_combination = None
+        max_val = 0.0
 
         for ID1, ID2, MSquaredFunc in subprocess_combinations(subprocess):
-            # Integrate via the convolution wrapper
-            sumMin = Integrate(
-                convolution, 
-                (MinMass, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc),
-                MC, -YmaxMin, YmaxMin, yMax
-            )
-            sumMax = Integrate(
-                convolution, 
-                (MaxMass, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc),
-                MC, -YmaxMax, YmaxMax, yMax
-            )
 
-            current_max = max(sumMin, sumMax)
-            if current_max > max_val:
-                max_val = current_max
-                max_combination = (ID1, ID2, MSquaredFunc.__name__, sumMin, sumMax)
+            # sample a few random points instead of integrating
+            for _ in range(MC):
+
+                Ymax_M = min(np.log(1 / np.sqrt(M**2 / s)), yMax)
+
+                Y = np.random.uniform(-Ymax_M, Ymax_M)
+                y = np.random.uniform(-(yMax - abs(Y)), yMax - abs(Y))
+
+                w, _, _ = QCD((Y, y), M, ID1, ID2, s, PDF, 0, 0, MSquaredFunc)
+                # w = QCD_envelope((Y, y), M, ID1, ID2, s, MSquaredFunc)
+
+                if w > max_val:
+                    max_val = w
 
         envelope_maxes.append(max_val)
-
-        if debug:
-            print(f"Subprocess: {subprocess}")
-            if max_combination:
-                ini, fin, fname, smin, smax = max_combination
-                print(f"  Max from combination: Initial ID = {ini}, Final ID = {fin}, Function = {fname}")
-                print(f"  SumMin = {smin:.6e}, SumMax = {smax:.6e}, Max = {max_val:.6e}")
-            print("-" * 60)
 
     return envelope_maxes
 
@@ -1021,14 +1027,14 @@ def subprocess_xsecs(M, yMax, s, MC, Subprocesses, subprocess_combinations, PDF,
     return cross_sections, process_info
 
 
-
 #=======================================================================
 #========================= GENERATE EVENTS =============================
 #=======================================================================
 
 def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params, dirs, process_map):
-    # Generate 2->2 QCD events with proper outgoing kinematics and write LHE files
-    # Unpack params
+    # Generate QCD or massless phase space events using CoM dynamics 
+    # Boosts to lab frame and store in LHE files 
+    
     MinMass = min_mass_TeV * params['TeV2GeV']
     MaxMass = max_mass_TeV * params['TeV2GeV']
     output_type = params['output_type']
@@ -1047,14 +1053,15 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
         raise ValueError(f"Invalid mode: {output_type}")
 
     active_names = [name for name, (_, _, _, active) in process_map.items() if active]
-    envelope_maxes = subprocess_envelopes(MinMass, MaxMass, yMax, s, MC, active_names, subprocess_combinations, PDF)
 
+    M_ref = 0.5 * (MinMass + MaxMass)
+    envelope_maxes = subprocess_envelopes(M_ref, yMax, s, MC, active_names, subprocess_combinations, PDF)
+    
     # Bookkeeping 
-    TotalCrossSection = 0.0
     N_subproc      = [0]*len(active_names)   # Counts events per subprocess
     Weight_subproc = [0.0]*len(active_names) # Sum of weights per subprocess
     Error_subproc  = [0.0]*len(active_names) # Sum of squared weights per subprocess
-    eventsCoM, eventsLab = [], []
+    eventsLab = []
     interaction_counter = Counter()
     full_process_counter = Counter()
     fail_count = 0
@@ -1083,43 +1090,34 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
             CrossSectionsSum = np.cumsum(CrossSections)
             TotalXSec = CrossSectionsSum[-1]
+            event_xsec = TotalXSec * DeltaMass
             
             # 3) Pick subprocess index based on cross section weights
-            subprocess_index_map = [active_names.index(proc[0]) for proc in ProcessInfo]
             RSig = np.random.uniform(0, TotalXSec)
             InteractionIndex = np.searchsorted(CrossSectionsSum, RSig, side='left')
-            interaction_name, ID1, ID2, MSquaredFunc, lprup = ProcessInfo[InteractionIndex]
-            
-            if debug: 
-                print("\n=== New Event Attempt ===")
-                print(f"M = {M:.3e}, TotalXSec = {TotalXSec:.3e}, RSig = {RSig:.3e}")
-                print("CrossSections:")
-                for i, (cs, (sp, id1_dbg, id2_dbg, _, _)) in enumerate(zip(CrossSections, ProcessInfo)):
-                    print(f"  [{i}] {sp} IDs=({id1_dbg},{id2_dbg})  σ={cs:.3e}")
-                print("Cumulative:", CrossSectionsSum)
 
-                print(f"Picked index = {InteractionIndex}, "
-                      f"Process = {interaction_name}, IDs=({ID1},{ID2})")
-            
-            env_index = subprocess_index_map[InteractionIndex]
+            interaction_name, ID1, ID2, MSquaredFunc, lprup = ProcessInfo[InteractionIndex]
+
+            env_index = active_names.index(interaction_name)
+
             RCrossSection = random.uniform(0, envelope_maxes[env_index])
             if RCrossSection > CrossSections[InteractionIndex]:
-                continue  # Reject and try again
+                continue
                 
             # 4) Sample kinematics
             xa, xb, ID1, ID2, outIDs, RandomY, Randomy = xs_and_colour(
                 MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2
             )            
 
-            # 5) Event weight (per-event differential weight at M, in pb)                 
-            weight = CrossSections[InteractionIndex] * (10**9) * 0.389379 * DeltaMass
-            
-            subproc_idx = subprocess_index_map[InteractionIndex] # Bookkeeping per subprocess
-            
+            # 5) Event weight (per-event differential weight at M, in pb) 
+            # Convert GeV^-2 to picobarns
+            conversion_pb = 0.389379e9                
+            weight = event_xsec * conversion_pb
+            subproc_idx = env_index
+
             N_subproc[subproc_idx]      += 1
             Weight_subproc[subproc_idx] += weight
             Error_subproc[subproc_idx]  += weight**2
-            TotalCrossSection += weight  # Global cross section accumulation
 
             # 6) Build IDs + Colour Flow
             incoming_ids = [ID1, ID2] + outIDs
@@ -1174,9 +1172,7 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
                 
             FullIDs_from_flow = assign_ids_from_colourflow(chosen_colour_flow, FullIDs)
 
-            # 7) Kinematics 
-            # Note: my generator is doing everything in the CoM frame then boosting to the lab for the LHE 
-            # mean that we do not use this pIn_lab for generation!
+            # 7) Kinematics  
             pIn_CoM = [
                 (M/2, 0, 0, M/2),
                 (M/2, 0, 0, -M/2)
@@ -1225,11 +1221,6 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
                 fail_count += 1
                 continue
 
-            # Boost to lab frame
-            # b3 = (xa - xb) / (xa + xb) # Don't use abs in numerator
-            # beta  = np.array([0.0, 0.0, b3]) 
-            # gamma = (xa + xb) / (2 * np.sqrt(xa * xb))
-
             # Incoming 4-vectors in lab
             pIn_lab = np.array([
                 [xa * params['Ebeam'], 0, 0,  xa * params['Ebeam']],
@@ -1241,8 +1232,7 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
             full_event_Lab = np.array([boost(gamma_lab, beta_lab, p) for p in full_event_CoM])
 
-            # Need to check the lab events because they keep giving unphysical 
-            # events with the boost for some reason...
+            # Check the lab events, sometimes unphyscial after boost...
             if not check_event_physical(full_event_Lab, label="Lab"):
                 fail_count += 1
                 continue
@@ -1275,8 +1265,8 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
     for i, (name, folder, ME, lprup) in enumerate(active_processes):
         if N_subproc[i] > 0:
-            xsec = TotalCrossSection * N_subproc[i] / N_events
-            err  = math.sqrt(abs(N_events * Error_subproc[i] - Weight_subproc[i]**2)) / math.sqrt(N_events)
+            xsec = Weight_subproc[i]
+            err  = math.sqrt(Error_subproc[i]) / N_events
         else:
             xsec, err = 0.0, 0.0
         CrossSections_list.append((xsec, err, 0.0, lprup))

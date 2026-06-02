@@ -22,9 +22,9 @@ random.seed(42)
 # 1️⃣ Project imports
 # =================================================
 sys.path.insert(0, "/hepusers2/fuscomus/DRToM")
-import DRToM.Generation.functions as fns
-import DRToM.Generation.configuration as cfg
-import DimensionalReduction as dr
+import Generation.functions as fns
+import Generation.configuration as cfg
+import Analysis.DimensionalReduction as dr
 importlib.reload(fns)
 importlib.reload(cfg)
 importlib.reload(dr)
@@ -32,16 +32,18 @@ importlib.reload(dr)
 # =================================================
 # 2️⃣ Safety: required variables and directories
 # =================================================
-tag = "10000_gg2gg_QCD"
+tag = "110"
 energy_folder = f"TeV13p0_{tag}"
 what_process = "2to2"
-DR_scale = 2.0
+DR_scale = 6.0
 
 outdir_base = os.path.join("Plots", energy_folder, what_process, f"DR_{DR_scale}")
 os.makedirs(outdir_base, exist_ok=True)
 
+raid_storage = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
+
 merged_file = os.path.join(
-    "ClusterData",
+    raid_storage,
     "MergedOutputs",
     energy_folder,
     what_process,
@@ -269,270 +271,270 @@ if want_theory_curve:
     print("Overlay of MC and theory saved ->", outpath_overlay)
     print()
 
-# # =================================================
-# # 8️⃣ Event shapes plotting
-# # =================================================
-# import matplotlib.gridspec as gridspec
+# =================================================
+# 8️⃣ Event shapes plotting
+# =================================================
+import matplotlib.gridspec as gridspec
 
-# # Helper to flatten nested lists/arrays
-# def flatten_vals(vals):
-#     if vals is None:
-#         return np.array([])
-#     out = []
-#     for v in vals:
-#         if isinstance(v, np.ndarray):
-#             if v.ndim == 0:
-#                 out.append(v.item())
-#             else:
-#                 out.extend(v.tolist())
-#         elif isinstance(v, (list, tuple)):
-#             out.extend(v)
-#         else:
-#             out.append(v)
-#     return np.array(out)
-
-
-# # Frames and output folders
-# frames = ["lab", "CoM"]
-# shape_vars = [
-#     "aplanarity", "B_values",
-#     "sphericity", "sphericity_transverse",
-#     "Y_values", "C_values", "D_values",
-#     "Thrust_T_values", "Thrust_m_values", "tau_values"
-# ]
-
-# x_labels = {
-#     "sphericity": "Sphericity (S)",
-#     "aplanarity": "Aplanarity (A)",
-#     "sphericity_transverse": "Transverse Sphericity ($S_T$)",
-#     "Y_values": "Y Parameter",
-#     "C_values": "C Parameter",
-#     "D_values": "D Parameter",
-#     "Thrust_T_values": "Transverse Thrust ($T_T$)",
-#     "Thrust_m_values": "Major Thrust ($T_m$)",
-#     "tau_values": r"$\tau \ (= 1 - T)$",
-#     "B_values": "Biplanarity (B)",
-# }
-
-# plot_config = {
-#     "sphericity": {"range": (0, 1), "bins": 50},
-#     "aplanarity": {"range": (0, 0.5), "bins": 50},
-#     "sphericity_transverse": {"range": (0, 1), "bins": 50},
-#     "Y_values": {"range": (0, 1), "bins": 50},
-#     "C_values": {"range": (0, 1), "bins": 50},
-#     "D_values": {"range": (0, 1), "bins": 50},
-#     "Thrust_T_values": {"range": (2/np.pi, 1), "bins": 50},
-#     "Thrust_m_values": {"range": (0, 2/np.pi), "bins": 50},
-#     "tau_values": {"range": (0, 1 - 2/np.pi), "bins": 50},
-#     "B_values": {"range": (0, 1), "bins": 50},
-# }
-
-# all_frames_data = {}
-
-# # -----------------------------
-# # Step 1: Aggregate and plot per-frame
-# # -----------------------------
-# for frame_choice in frames:
-#     # print(f"\n--- Processing frame: {frame_choice} ---")
-#     suffix = "_lab" if frame_choice == "lab" else "_CoM"
-
-#     aggregated = {var: [] for var in shape_vars}
-#     for directory, lprup_dict in data_dict.items():
-#         for _, dd in lprup_dict.items():
-#             if not isinstance(dd, dict):
-#                 continue
-#             for var in shape_vars:
-#                 vals = dd.get(var + suffix, [])
-#                 if isinstance(vals, (list, tuple, np.ndarray)):
-#                     aggregated[var].extend(vals)
-#                 else:
-#                     aggregated[var].append(vals)
-
-#     # flatten once
-#     aggregated = {k: flatten_vals(v) for k, v in aggregated.items()}
-#     all_frames_data[frame_choice] = aggregated
-
-#     # ---- Full grid plots ----
-#     fig = plt.figure(figsize=(20, 18))
-#     plt.rcParams.update({'font.size': 11})
-#     row_cols = [2, 2, 3, 3]
-#     max_cols = max(row_cols)
-#     gs = gridspec.GridSpec(len(row_cols), max_cols, figure=fig, hspace=0.35, wspace=0.3)
-
-#     var_idx = 0
-#     for row, n_cols in enumerate(row_cols):
-#         for col in range(n_cols):
-#             if var_idx >= len(shape_vars):
-#                 break
-#             var = shape_vars[var_idx]
-#             data = aggregated[var]
-#             ax = fig.add_subplot(gs[row, col])
-
-#             if data.size == 0:
-#                 ax.text(0.5, 0.5, "No data", ha="center", va="center")
-#                 ax.axis("off")
-#             else:
-#                 cfg = plot_config.get(var, {})
-#                 hist_range = cfg.get("range", None)
-#                 bins = cfg.get("bins", 50)
-#                 weights = np.ones_like(data) / len(data)
-#                 counts, bins_arr, _ = ax.hist(
-#                     data, bins=bins, range=hist_range, color="steelblue",
-#                     weights=weights,
-#                     edgecolor="black", alpha=0.75
-#                 )
-#                 if hist_range is not None:
-#                     ax.set_xlim(hist_range)
-#                 bin_width = bins_arr[1] - bins_arr[0] if len(bins_arr) > 1 else 1
-#                 ax.set_xlabel(x_labels.get(var, var))
-#                 ax.set_ylabel(f"Fraction of Events / {bin_width:.3f}")
-#                 ax.grid(alpha=0.2)
-
-#             var_idx += 1
-
-#     outdir = os.path.join(outdir_base, "EventShapeVars")
-#     os.makedirs(outdir, exist_ok=True)
-#     plt.savefig(os.path.join(outdir, f"EventShapeVars_full_{frame_choice}.png"), dpi=300)
-#     plt.close()
-
-# # -----------------------------
-# # Step 2: Overlay plots lab vs CoM
-# # -----------------------------
-# overlay_dir = os.path.join(outdir, "overlay")
-# os.makedirs(overlay_dir, exist_ok=True)
-
-# for var in shape_vars:
-#     data_lab = all_frames_data["lab"][var]
-#     data_com = all_frames_data["CoM"][var]
-
-#     if data_lab.size == 0 and data_com.size == 0:
-#         continue
-
-#     cfg = plot_config.get(var, {})
-#     hist_range = cfg.get("range", None)
-#     bins = cfg.get("bins", 50)
-
-#     fig, ax = plt.subplots(figsize=(6, 5))
-#     if len(data_lab) > 0:
-#         w_lab = np.ones_like(data_lab) / len(data_lab)
-#         ax.hist(data_lab, bins=bins, range=hist_range,
-#                 weights=w_lab,
-#                 histtype="step", linewidth=2, label="lab")
-
-#     if len(data_com) > 0:
-#         w_com = np.ones_like(data_com) / len(data_com)
-#         ax.hist(data_com, bins=bins, range=hist_range,
-#                 weights=w_com,
-#                 histtype="step", linewidth=2, linestyle="--", label="CoM")
-
-#     if hist_range is not None:
-#         ax.set_xlim(hist_range)
-
-#     bin_width = (hist_range[1] - hist_range[0]) / bins if hist_range is not None else 1
-#     ax.set_xlabel(x_labels.get(var, var))
-#     ax.set_ylabel(f"Events / {bin_width:.3f}")
-#     ax.grid(alpha=0.2)
-#     ax.legend()
-
-#     outpath = os.path.join(overlay_dir, f"{var}_overlay.png")
-#     plt.savefig(outpath, dpi=300)
-#     plt.close()
-#     print("Saved overlay ->", outpath)
-
-# print()
-# print(" Saved event-shape plots ")
-# print()
+# Helper to flatten nested lists/arrays
+def flatten_vals(vals):
+    if vals is None:
+        return np.array([])
+    out = []
+    for v in vals:
+        if isinstance(v, np.ndarray):
+            if v.ndim == 0:
+                out.append(v.item())
+            else:
+                out.extend(v.tolist())
+        elif isinstance(v, (list, tuple)):
+            out.extend(v)
+        else:
+            out.append(v)
+    return np.array(out)
 
 
-# # =================================
-# # 8️⃣ Momentum / Angles plots
-# # =================================
+# Frames and output folders
+frames = ["lab", "CoM"]
+shape_vars = [
+    "aplanarity", "B_values",
+    "sphericity", "sphericity_transverse",
+    "Y_values", "C_values", "D_values",
+    "Thrust_T_values", "Thrust_m_values", "tau_values"
+]
 
-# mom_angle_folder = os.path.join(outdir_base, "MomentumAndAngles")
+x_labels = {
+    "sphericity": "Sphericity (S)",
+    "aplanarity": "Aplanarity (A)",
+    "sphericity_transverse": "Transverse Sphericity ($S_T$)",
+    "Y_values": "Y Parameter",
+    "C_values": "C Parameter",
+    "D_values": "D Parameter",
+    "Thrust_T_values": "Transverse Thrust ($T_T$)",
+    "Thrust_m_values": "Major Thrust ($T_m$)",
+    "tau_values": r"$\tau \ (= 1 - T)$",
+    "B_values": "Biplanarity (B)",
+}
 
-# import gc
+plot_config = {
+    "sphericity": {"range": (0, 1), "bins": 50},
+    "aplanarity": {"range": (0, 0.5), "bins": 50},
+    "sphericity_transverse": {"range": (0, 1), "bins": 50},
+    "Y_values": {"range": (0, 1), "bins": 50},
+    "C_values": {"range": (0, 1), "bins": 50},
+    "D_values": {"range": (0, 1), "bins": 50},
+    "Thrust_T_values": {"range": (2/np.pi, 1), "bins": 50},
+    "Thrust_m_values": {"range": (0, 2/np.pi), "bins": 50},
+    "tau_values": {"range": (0, 1 - 2/np.pi), "bins": 50},
+    "B_values": {"range": (0, 1), "bins": 50},
+}
 
-# frames = ["lab", "CoM"]
+all_frames_data = {}
 
-# # Mode selection
-# if what_process in ["2to2", "2to2_QCD"]:
-#     modes = ["All", "Leading", "Subleading"]
-# elif what_process == "2to4":
-#     modes = ["All", "Leading", "Subleading", "Tertiary", "Last"]
-# else:
-#     modes = ["All"]
+# -----------------------------
+# Step 1: Aggregate and plot per-frame
+# -----------------------------
+for frame_choice in frames:
+    # print(f"\n--- Processing frame: {frame_choice} ---")
+    suffix = "_lab" if frame_choice == "lab" else "_CoM"
 
-# print(f"Processing momentum/angles for modes: {modes}")
+    aggregated = {var: [] for var in shape_vars}
+    for directory, lprup_dict in data_dict.items():
+        for _, dd in lprup_dict.items():
+            if not isinstance(dd, dict):
+                continue
+            for var in shape_vars:
+                vals = dd.get(var + suffix, [])
+                if isinstance(vals, (list, tuple, np.ndarray)):
+                    aggregated[var].extend(vals)
+                else:
+                    aggregated[var].append(vals)
 
-# mom_angle_folder = os.path.join(outdir_base, "MomentumAndAngles")
+    # flatten once
+    aggregated = {k: flatten_vals(v) for k, v in aggregated.items()}
+    all_frames_data[frame_choice] = aggregated
 
-# for frame_choice in frames:
-#     print(f"--- Processing frame: {frame_choice} ---")
+    # ---- Full grid plots ----
+    fig = plt.figure(figsize=(20, 18))
+    plt.rcParams.update({'font.size': 11})
+    row_cols = [2, 2, 3, 3]
+    max_cols = max(row_cols)
+    gs = gridspec.GridSpec(len(row_cols), max_cols, figure=fig, hspace=0.35, wspace=0.3)
 
-#     # Prepare output folders
-#     final_frame_folder = os.path.join(mom_angle_folder, frame_choice)
-#     individual_folder  = os.path.join(final_frame_folder, "Individual")
-#     overlay_folder     = os.path.join(final_frame_folder, "Overlay")
-#     differences_folder = os.path.join(final_frame_folder, "Differences")
-#     for folder in [individual_folder, overlay_folder, differences_folder]:
-#         os.makedirs(folder, exist_ok=True)
+    var_idx = 0
+    for row, n_cols in enumerate(row_cols):
+        for col in range(n_cols):
+            if var_idx >= len(shape_vars):
+                break
+            var = shape_vars[var_idx]
+            data = aggregated[var]
+            ax = fig.add_subplot(gs[row, col])
 
-#     # Initialize accumulators for overlays/differences
-#     accumulated_data = {mode: defaultdict(list) for mode in modes}
-#     all_delta_eta, all_delta_theta, all_delta_phi = [], [], []
+            if data.size == 0:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center")
+                ax.axis("off")
+            else:
+                cfg = plot_config.get(var, {})
+                hist_range = cfg.get("range", None)
+                bins = cfg.get("bins", 50)
+                weights = np.ones_like(data) / len(data)
+                counts, bins_arr, _ = ax.hist(
+                    data, bins=bins, range=hist_range, color="steelblue",
+                    weights=weights,
+                    edgecolor="black", alpha=0.75
+                )
+                if hist_range is not None:
+                    ax.set_xlim(hist_range)
+                bin_width = bins_arr[1] - bins_arr[0] if len(bins_arr) > 1 else 1
+                ax.set_xlabel(x_labels.get(var, var))
+                ax.set_ylabel(f"Fraction of Events / {bin_width:.3f}")
+                ax.grid(alpha=0.2)
 
-#     # Process per directory / lprup to avoid huge lists
-#     for directory, lprup_dict in data_dict.items():
-#         for lprup, dd in lprup_dict.items():
-#             if not isinstance(dd, dict):
-#                 continue
+            var_idx += 1
 
-#             # Extract four-momentum for this batch
-#             four_mom_batch = dd.get(f"four_mom_{frame_choice}", [])
-#             if not four_mom_batch:
-#                 continue
+    outdir = os.path.join(outdir_base, "EventShapeVars")
+    os.makedirs(outdir, exist_ok=True)
+    plt.savefig(os.path.join(outdir, f"EventShapeVars_full_{frame_choice}.png"), dpi=300)
+    plt.close()
 
-#             for mode in modes:
-#                 (
-#                     three_mom_all, energy_list, momentum_list, pt_list,
-#                     eta_per_event, phi_per_event, px_list, py_list, pz_list,
-#                     theta_per_event, delta_eta_list, delta_theta_list, delta_phi_list
-#                 ) = dr.diff_momentum(four_mom_batch, mode=mode)
+# -----------------------------
+# Step 2: Overlay plots lab vs CoM
+# -----------------------------
+overlay_dir = os.path.join(outdir, "overlay")
+os.makedirs(overlay_dir, exist_ok=True)
 
-#                 # Flatten and accumulate
-#                 accumulated_data[mode]["energy"].extend([v for ev in energy_list for v in ev])
-#                 accumulated_data[mode]["momentum"].extend([v for ev in momentum_list for v in ev])
-#                 accumulated_data[mode]["pt"].extend([v for ev in pt_list for v in ev])
-#                 accumulated_data[mode]["eta"].extend([v for ev in eta_per_event for v in ev])
-#                 accumulated_data[mode]["phi"].extend([v for ev in phi_per_event for v in ev])
-#                 accumulated_data[mode]["theta"].extend([v for ev in theta_per_event for v in ev])
-#                 accumulated_data[mode]["px"].extend([v for ev in px_list for v in ev])
-#                 accumulated_data[mode]["py"].extend([v for ev in py_list for v in ev])
-#                 accumulated_data[mode]["pz"].extend([v for ev in pz_list for v in ev])
+for var in shape_vars:
+    data_lab = all_frames_data["lab"][var]
+    data_com = all_frames_data["CoM"][var]
 
-#                 # Differences only once
-#                 if mode == "All":
-#                     all_delta_eta.extend(delta_eta_list)
-#                     all_delta_theta.extend(delta_theta_list)
-#                     all_delta_phi.extend(delta_phi_list)
+    if data_lab.size == 0 and data_com.size == 0:
+        continue
 
-#             # Free memory
-#             # del four_mom_batch, three_mom_all, energy_list, momentum_list
-#             # del pt_list, eta_per_event, phi_per_event, px_list, py_list, pz_list
-#             # del theta_per_event, delta_eta_list, delta_theta_list, delta_phi_list
-#             # gc.collect()
+    cfg = plot_config.get(var, {})
+    hist_range = cfg.get("range", None)
+    bins = cfg.get("bins", 50)
 
-#     # After all batches, call your plotting functions
-#     dr.plot_kinematics_overlay_full(accumulated_data, output_file_prefix=os.path.join(overlay_folder, ""))
-#     dr.plot_jet_differences(all_delta_eta, all_delta_theta, all_delta_phi, output_file_prefix=os.path.join(differences_folder, ""))
-#     print(f"✅ Completed frame: {frame_choice}")
+    fig, ax = plt.subplots(figsize=(6, 5))
+    if len(data_lab) > 0:
+        w_lab = np.ones_like(data_lab) / len(data_lab)
+        ax.hist(data_lab, bins=bins, range=hist_range,
+                weights=w_lab,
+                histtype="step", linewidth=2, label="lab")
+
+    if len(data_com) > 0:
+        w_com = np.ones_like(data_com) / len(data_com)
+        ax.hist(data_com, bins=bins, range=hist_range,
+                weights=w_com,
+                histtype="step", linewidth=2, linestyle="--", label="CoM")
+
+    if hist_range is not None:
+        ax.set_xlim(hist_range)
+
+    bin_width = (hist_range[1] - hist_range[0]) / bins if hist_range is not None else 1
+    ax.set_xlabel(x_labels.get(var, var))
+    ax.set_ylabel(f"Events / {bin_width:.3f}")
+    ax.grid(alpha=0.2)
+    ax.legend()
+
+    outpath = os.path.join(overlay_dir, f"{var}_overlay.png")
+    plt.savefig(outpath, dpi=300)
+    plt.close()
+    print("Saved overlay ->", outpath)
+
+print()
+print(" Saved event-shape plots ")
+print()
+
+
+# =================================
+# 8️⃣ Momentum / Angles plots
+# =================================
+
+mom_angle_folder = os.path.join(outdir_base, "MomentumAndAngles")
+
+import gc
+
+frames = ["lab", "CoM"]
+
+# Mode selection
+if what_process in ["2to2", "2to2_QCD"]:
+    modes = ["All", "Leading", "Subleading"]
+elif what_process == "2to4":
+    modes = ["All", "Leading", "Subleading", "Tertiary", "Last"]
+else:
+    modes = ["All"]
+
+print(f"Processing momentum/angles for modes: {modes}")
+
+mom_angle_folder = os.path.join(outdir_base, "MomentumAndAngles")
+
+for frame_choice in frames:
+    print(f"--- Processing frame: {frame_choice} ---")
+
+    # Prepare output folders
+    final_frame_folder = os.path.join(mom_angle_folder, frame_choice)
+    individual_folder  = os.path.join(final_frame_folder, "Individual")
+    overlay_folder     = os.path.join(final_frame_folder, "Overlay")
+    differences_folder = os.path.join(final_frame_folder, "Differences")
+    for folder in [individual_folder, overlay_folder, differences_folder]:
+        os.makedirs(folder, exist_ok=True)
+
+    # Initialize accumulators for overlays/differences
+    accumulated_data = {mode: defaultdict(list) for mode in modes}
+    all_delta_eta, all_delta_theta, all_delta_phi = [], [], []
+
+    # Process per directory / lprup to avoid huge lists
+    for directory, lprup_dict in data_dict.items():
+        for lprup, dd in lprup_dict.items():
+            if not isinstance(dd, dict):
+                continue
+
+            # Extract four-momentum for this batch
+            four_mom_batch = dd.get(f"four_mom_{frame_choice}", [])
+            if not four_mom_batch:
+                continue
+
+            for mode in modes:
+                (
+                    three_mom_all, energy_list, momentum_list, pt_list,
+                    eta_per_event, phi_per_event, px_list, py_list, pz_list,
+                    theta_per_event, delta_eta_list, delta_theta_list, delta_phi_list
+                ) = dr.diff_momentum(four_mom_batch, mode=mode)
+
+                # Flatten and accumulate
+                accumulated_data[mode]["energy"].extend([v for ev in energy_list for v in ev])
+                accumulated_data[mode]["momentum"].extend([v for ev in momentum_list for v in ev])
+                accumulated_data[mode]["pt"].extend([v for ev in pt_list for v in ev])
+                accumulated_data[mode]["eta"].extend([v for ev in eta_per_event for v in ev])
+                accumulated_data[mode]["phi"].extend([v for ev in phi_per_event for v in ev])
+                accumulated_data[mode]["theta"].extend([v for ev in theta_per_event for v in ev])
+                accumulated_data[mode]["px"].extend([v for ev in px_list for v in ev])
+                accumulated_data[mode]["py"].extend([v for ev in py_list for v in ev])
+                accumulated_data[mode]["pz"].extend([v for ev in pz_list for v in ev])
+
+                # Differences only once
+                if mode == "All":
+                    all_delta_eta.extend(delta_eta_list)
+                    all_delta_theta.extend(delta_theta_list)
+                    all_delta_phi.extend(delta_phi_list)
+
+            # Free memory
+            # del four_mom_batch, three_mom_all, energy_list, momentum_list
+            # del pt_list, eta_per_event, phi_per_event, px_list, py_list, pz_list
+            # del theta_per_event, delta_eta_list, delta_theta_list, delta_phi_list
+            # gc.collect()
+
+    # After all batches, call your plotting functions
+    dr.plot_kinematics_overlay_full(accumulated_data, output_file_prefix=os.path.join(overlay_folder, ""))
+    dr.plot_jet_differences(all_delta_eta, all_delta_theta, all_delta_phi, output_file_prefix=os.path.join(differences_folder, ""))
+    print(f"✅ Completed frame: {frame_choice}")
     
-# for mode in modes:
-#     print(f"{mode}: {len(accumulated_data[mode]['energy'])} entries")
+for mode in modes:
+    print(f"{mode}: {len(accumulated_data[mode]['energy'])} entries")
 
-# plt.close("all")
+plt.close("all")
 
-# print("✅ Momentum/Angles plotting complete")
+print("✅ Momentum/Angles plotting complete")
 
 
 # # =================================
@@ -734,3 +736,152 @@ if want_theory_curve:
 # fig_legend.savefig(os.path.join(outdir, f"Legend_{frame_choice}.png"), dpi=300, bbox_inches="tight")
 
 # print("Figures saved")
+
+# =================================
+# 8️⃣ Planar vs. Mass plots (FIXED)
+# =================================
+
+frame_choice = "CoM"   # "lab" or "CoM"
+use_scatter = True
+
+# Mass range (TeV)
+Mmin, Mmax = 2, 11
+bins = 50
+GeV2TeV = 1e-3
+
+# -------------------------------
+# STEP 1: MERGE ALL DATA FIRST
+# -------------------------------
+B_all, A_all, M_all = [], [], []
+
+for directory, lprup_dict in data_dict.items():
+    for lprup, dd in lprup_dict.items():
+        if not isinstance(dd, dict):
+            continue
+
+        if frame_choice == "lab":
+            B_all.extend(dd.get("B_values_lab", []))
+            A_all.extend(dd.get("aplanarity_lab", []))
+            M_all.extend(dd.get("M_lab", []))
+        else:
+            B_all.extend(dd.get("B_values_CoM", []))
+            A_all.extend(dd.get("aplanarity_CoM", []))
+            M_all.extend(dd.get("M_CoM", []))
+
+# Convert once
+B_all = np.array(B_all)
+A_all = np.array(A_all)
+M_all = np.array(M_all)
+
+if len(M_all) == 0:
+    raise RuntimeError("No mass data found for planar vs mass plot")
+
+# Convert to TeV
+mm = M_all * GeV2TeV
+
+# Remove invalid values
+valid = np.isfinite(mm)
+mm = mm[valid]
+B_all = B_all[valid]
+A_all = A_all[valid]
+
+# -------------------------------
+# STEP 2: WEIGHTS
+# -------------------------------
+weights_bg3 = np.asarray(dr.bg3(mm, 1.50e2, 7.38e0, -4.68e0))
+
+# -------------------------------
+# STEP 3: BINNING SETUP
+# -------------------------------
+mass_edges = np.linspace(Mmin, Mmax, bins + 1)
+mass_centers = 0.5 * (mass_edges[:-1] + mass_edges[1:])
+
+poi_B = np.zeros(bins)
+poi_A = np.zeros(bins)
+
+# -------------------------------
+# STEP 4: SINGLE GLOBAL LOOP
+# -------------------------------
+for i in range(bins):
+
+    mask = (mm >= mass_edges[i]) & (mm < mass_edges[i + 1])
+
+    if np.sum(mask) == 0:
+        continue
+
+    weights = weights_bg3[mask]
+
+    if np.sum(weights) > 0:
+        weights = weights / np.sum(weights)
+
+    # B distribution
+    n_B, _ = np.histogram(
+        B_all[mask],
+        bins=50,
+        range=(0.0, 1.0),
+        weights=weights
+    )
+
+    # A distribution
+    n_A, _ = np.histogram(
+        A_all[mask],
+        bins=50,
+        range=(0.0, 1.0),
+        weights=weights
+    )
+
+    poi_B[i] = n_B[-1]   # B ~ 1
+    poi_A[i] = n_A[0]    # A ~ 0
+
+# -------------------------------
+# STEP 5: PLOTTING
+# -------------------------------
+from matplotlib.ticker import AutoMinorLocator
+
+fig_B, ax_B = plt.subplots(figsize=(8, 6))
+fig_A, ax_A = plt.subplots(figsize=(8, 6))
+
+for ax in [ax_B, ax_A]:
+    ax.set_xticks(np.arange(Mmin, Mmax + 1, 1))
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.tick_params(axis='both', which='both', direction='in', top=True, right=True)
+
+label_str = rf"$\Lambda_3 = {DR_scale:.1f}\,\mathrm{{TeV}}$"
+
+if use_scatter:
+    ax_B.scatter(mass_centers, poi_B, color="royalblue", label=label_str)
+    ax_A.scatter(mass_centers, poi_A, color="darkred", label=label_str)
+else:
+    ax_B.plot(mass_centers, poi_B, color="royalblue", label=label_str)
+    ax_A.plot(mass_centers, poi_A, color="darkred", label=label_str)
+
+# -------------------------------
+# STEP 6: FORMATTING
+# -------------------------------
+ax_B.set_xlabel(r"Four-jet invariant mass, $M_{jjjj}$ [TeV]")
+ax_B.set_ylabel("Fraction (B > 0.98)")
+ax_B.set_ylim(0, 1.05)
+ax_B.grid(True)
+ax_B.legend()
+
+ax_A.set_xlabel(r"Four-jet invariant mass, $M_{jjjj}$ [TeV]")
+ax_A.set_ylabel("Fraction (A < 0.01)")
+ax_A.set_ylim(0, 1.05)
+ax_A.grid(True)
+ax_A.legend()
+
+plt.tight_layout()
+plt.show()
+
+# -------------------------------
+# STEP 7: SAVE
+# -------------------------------
+outdir = os.path.join("Plots", energy_folder, what_process, f"DR_{DR_scale}")
+os.makedirs(outdir, exist_ok=True)
+
+fig_B.savefig(os.path.join(outdir, f"B_vs_M_{frame_choice}.png"), dpi=300, bbox_inches="tight")
+fig_A.savefig(os.path.join(outdir, f"A_vs_M_{frame_choice}.png"), dpi=300, bbox_inches="tight")
+
+print("Figures saved")

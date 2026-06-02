@@ -1,13 +1,14 @@
 
-In here is kind of a shmorgishborg of everything that I have been doing. As of writing this it has not been updated to work with the new data structure. 
+In here is kind of a shmorgishborg of everything that I have been doing for analysis at LHE level. All the data, except the final plots, are stored in the \raid\ area under \DRToM\Analysis\
 
 
 ## DimensionalReduction.py 
 
 This is all the analysis functions I made and used throughout the first year of my thesis. I would not recomend looking at all the functions here for two reason: (1) there are a lot and many are not used or redundant or just outright bad, (2) it is a mess with little organization. 
 
-Within the scripts below I call to several functions in this area, so I would stick to looking at the relevant ones as needed. 
+Within the scripts below I call to several functions in this area, so I would stick to looking at the relevant ones as needed if you are going to use this. I would highly suggest making new LHE analysis code, though. Please use anything here as starter code.
 
+--- 
 
 ## Actual analysis
 
@@ -15,19 +16,19 @@ The point is to plot: Invariant mass, kinematics, event shape variables, momentu
 
 Since we are using larger datasets, this is broken up into many steps. 
 
-Start in `make_DR_list.py` and make the file list for what DR scale you want. Note to add an appropriate tag so that you can track the data easier. 
+Start in `MakeData.py` and make the file list for what DR scale you want. Note to add an appropriate tag so that you can track the data easier. 
 
-- This outputs in ClusterData/FileLists under the appropriate energy/process/DR folder 
+- This outputs in \FileLists\ under the appropriate energy/process/DR folder 
 
 Go to `worker_jobs.py` and change all the input information at the top to make sure it is pointing to the proper file list. Check `worker_jobs.slurm` to make sure there is a proper amount of arrays and file per task.
 
-- This should output in ClusterData/PartialOutputs under the appropriate energy/process/DR folder 
+- This should output in \PartialOutputs\ under the appropriate energy/process/DR folder 
 
 **Note:** I tried running multiple of these at once and it wasn't really working so that's why it is part of a loop now over the process and DR types.
 
 Go to `merge.py` and change all the input information under "Safety" block to make sure it is pointing to the proper file list. Run `merge.slurm`
 
-- Outputs should be in ClusterData/MergedOutputs under the appropriate energy/process/DR folder 
+- Outputs should be in \MergedOutputs\ under the appropriate energy/process/DR folder 
 
 **Note:** These can be run for multiple files at the same time. There was no issues in that. 
 
@@ -35,10 +36,8 @@ With the merged files, we can run the analysis. This is done in `kinematics.py` 
 
 **Note:** These can be run for multiple files at the same time. There was no issues in that. 
 
+---
+
 ## PDF_Plotting.ipynb 
 
 All this is doing is plotting some PDF related physics and should be easy enough to follow as is (no markdowns). 
-
-## Biplanarity Study 
-
-This is the notebook I used to conduct the biplanarity test. Comments are in the notebook. 
