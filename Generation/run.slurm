@@ -1,21 +1,19 @@
 #!/bin/bash
 #SBATCH --job-name=DRToM
-#SBATCH --output=logs/May29_O4/%A_%a.out
-#SBATCH --error=logs/May29_O4/%A_%a.err
+#SBATCH --output=logs/%A_%a.out
+#SBATCH --error=logs/%A_%a.err
 
 # #SBATCH --nodelist=thuner-gw32,thuner-gw34  # Run only on these nodes 
 # #SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
+# #SBATCH --cpus-per-task=8  # This was stopping the use of all the nodes running at the same time. Don't use it!!!
 
-# ----------------------------
-# Environment
-# ----------------------------
-# SBATCH --cpus-per-task=8 ---- This is what was stopping the use of all the nodes being run at the same time so don't use it!!!
+
+# ============================
+# Environment and load scan parameters 
+# ============================
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate Analysis # This has should have LHAPDF installed with the desired PDF
 
-# ----------------------------
-# Load scan parameters
-# ----------------------------
 source params.sh
 
 # Reconstruct arrays from exported strings
@@ -40,13 +38,13 @@ if [ "$IDX" -ge "$TOTAL" ]; then
     exit 1
 fi
 
-# ----------------------------
+
+# =================================
 # Decode indices (include iterations)
 # Ordering (fastest → slowest): CM_ENERGIES, ITERATIONS, WINDOWS, DIMENSIONALITY_LIST, NPARTONS_LIST
-# ----------------------------
+# ================================
 NDIMENSION=${#DIMENSIONALITY_LIST[@]}
 NWIN=${#WINDOWS[@]}
-
 NCM=${#CM_ENERGIES[@]}
 
 # Decompose IDX into indices (integer arithmetic)
@@ -67,17 +65,19 @@ CM=${CM_ENERGIES[$cm_index]}
 START=${WIN%%:*}
 END=${WIN##*:}
 
-# ----------------------------
+
+# ============================
 # Thread control
-# ----------------------------
+# ============================
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export NUMEXPR_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-# ----------------------------
+
+# ============================
 # Run the main Python script with the appropriate arguments
-# ----------------------------
+# ============================
 echo " → CM=${CM} TeV"
 echo "IDX=$IDX → NPARTON=$NPARTON, DIMENSIONALITY=$DIMENSIONALITY, WIN=$WIN"
 
@@ -89,5 +89,5 @@ python3 main.py \
     --step ${WINDOW_STEP} \
     --nevents ${WINDOW_EVENTS} \
     --npartons ${NPARTON} \
-    --output_type PS \
+    --output_type ${CLUSTER_OUTPUT_TYPE} \
     --iterations ${ITERATIONS}

@@ -10,7 +10,9 @@ from decimal import Decimal, getcontext
 cfg = None
 fns = None
 
-# === Cluster parsing before importing configuration ===
+# =================================
+#  Cluster parsing before importing configuration 
+# =================================
 # This sets environment variables that configuration.py will read.
 parser = argparse.ArgumentParser(description="Wrapper for ColourFlow main with runtime overrides.")
 parser.add_argument("--dr", type=float, help="Single DR value (TeV) to run (overrides M_DR_list).")
@@ -49,7 +51,6 @@ if args.dimensionality is not None:
 if args.iterations is not None:
     os.environ["CLUSTER_ITERATIONS"] = str(args.iterations)
 
-
 def clear_console():
     if platform.system() == "Windows":
         os.system("cls")
@@ -57,10 +58,9 @@ def clear_console():
         os.system("clear")
 
 
-# ==============
+# ========================
 # Helper functions 
-# ==============
-
+# ========================
 # Import configuration and functions after environment overrides
 import configuration as cfg
 import functions as fns
@@ -104,9 +104,10 @@ def next_available_event_file(directory, dsid, it, max_tries=1000):
 def get_dsid(dsid_map, dim, window_name):
     return dsid_map[dim][window_name]
 
-# ===========
+
+# =====================
 # Main loop 
-# ===========
+# =====================
 if __name__ == "__main__":
 
     DSID_MAP_PATH = "/hepusers2/fuscomus/DRToM/DSID/dsid_map_0.1.json"

@@ -4,19 +4,11 @@ Storage*/
 Data*/
 TeV13p*/
 logs*/
-Misc/
 Summary*/
 
-# Ignore stuff in Analysis 
-Analysis/functions_py_test.ipynb
-Analysis/LambdifyAndpT.ipynb
-Analysis/Plots/
-Analysis/LHE_analysis.py
-Analysis/LHE_analysis.ipynb
-Analysis/ClusterData/
-Analysis/m2_values_test.py
-Analysis/BiplanarityTest.ipynb
-Analysis/make_DR_list.py
+# Not necessary to track 
+Analysis/Misc/BiplanarityTest.ipynb
+Analysis/Misc/LHE_analysis.ipynb
 
 # ROOT / physics outputs
 *.root

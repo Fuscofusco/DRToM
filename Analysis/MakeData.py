@@ -9,14 +9,15 @@ import numpy as np
 # CONFIG
 # =================================================
 
-tag = "110"
-base_path = f"/raid/adisk06/users/fuscomus/DRToM/LHEF/TeV13p0_{tag}"
+energy_folder = "TeV13p0_110_eta"
+base_path = f"/raid/adisk06/users/fuscomus/DRToM/LHEF/{energy_folder}"
 
-what_process = "2to2"   # still used if you want filtering later
+outgoing_parton = 4  
+what_process = f"2to{outgoing_parton}" 
 Start = 2.0
 End = 11.0
 Step = 0.1
-DR_scale = 6.0
+DR_scale = 11.0
 
 # =================================================
 # Regex to parse folder names
@@ -76,7 +77,7 @@ for folder in all_folders:
     dim, proc, low, high = info
 
     # optional process filter
-    if what_process == "2to2" and proc not in ["O2"]:
+    if what_process == f"2to{outgoing_parton}" and proc not in [f"O{outgoing_parton}"]:
         continue
 
     # midpoint energy of bin
@@ -129,7 +130,7 @@ out_base = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
 file_list_path = os.path.join(
     out_base,
     "FileLists",
-    f"TeV13p0_{tag}",
+    f"{energy_folder}",
     what_process,
     f"DR_{DR_scale}",
     f"{Start}_{End}_{Step}.txt"

@@ -165,7 +165,7 @@ active_processes = [(key, folder, ME_func, lprup) for key, (folder, ME_func, lpr
 if not active_processes:
     raise ValueError("No active process found in process_map_full.") 
 
-dir_tag = os.getenv("CLUSTER_DIR_TAG", "110")  # Used in def build_base_dir in main.py
+dir_tag = os.getenv("CLUSTER_DIR_TAG", "misc")  # Used in def build_base_dir in main.py, defined in params.sh
 
 dimensionality = event_settings.get("dimensionality", 2)
 output_type = event_settings["output_type"]

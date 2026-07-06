@@ -7,14 +7,13 @@ from collections import Counter
 from collections import defaultdict
 import math 
 
-
 # Global debug set
 debug = False 
+
 
 #============================================================
 #=================== GENERATION PARAMETERS ==================
 #============================================================
-
 # Load PDF set
 PDFSet = "cteq6l1"
 PDF = lhapdf.mkPDF(PDFSet, 0)
@@ -23,11 +22,9 @@ PDF = lhapdf.mkPDF(PDFSet, 0)
 MC = 5
 
 
-
 #============================================================
 #====================== BASELINE FUNCTIONS ==================
 #============================================================
-
 def Integrate(Func,args,N,a,b,x):
     # Double integral
     value = 0
@@ -40,7 +37,6 @@ def Integrate(Func,args,N,a,b,x):
             params = [Y,y]
             value += ((b-a)/N)*((d-c)/N)*Func(params,*args)
     return value
-
 
 def boost(gamma, beta, p):
     # Lorentz boost
@@ -120,7 +116,6 @@ def phase2(N, M, debug=False):
 
     return p
 
-
 def phase3(N, M):
     # 3D phase space generator with N massless momenta,
     # Same as 'phase2' but we don't force the z-component to be 0 and dont apply a rotation
@@ -143,7 +138,6 @@ def phase3(N, M):
         p[i, 0] = (M / mass) * (gamma * q[i, 0] + bq)
         p[i, 1:] = (M / mass) * (q[i, 1:] + beta * (q[i, 0] + bq / (1 + gamma)))
     return p
-
 
 def QCD_2to2_outgoingkin(interaction_name, M, RandomY, Randomy, outIDs, QuarkMasses):
     # Outgoing 2->2 parton kinematics in CoM frame
@@ -234,7 +228,6 @@ def QCD_2to2_outgoingkin(interaction_name, M, RandomY, Randomy, outIDs, QuarkMas
 
     return outgoing_particles_CoM, pt
 
-
 def check_event_physical(particles, tol=9e-5, label=""):
     # If we generate an unphysical event it needs to be kicked out 
     # tol needs to be around 1e-5 for 2 -> 2 generation (see test.py in Analysis area) 
@@ -253,10 +246,10 @@ def check_event_physical(particles, tol=9e-5, label=""):
 
     return True
 
+
 #=================================================================================
 #======================= MATRIX ELEMENTS AND COLOUR FLOW =========================
 #=================================================================================
-
 # If not symmetric in u and t then another term with the flip is needed
 # If final state has the same particle then divide by 2
 
@@ -323,7 +316,6 @@ def M2_qqx_qqx(shat, that, uhat):
     term1 = (4 / 9) * ((shat**2 + uhat**2) / that**2 + (that**2 + uhat**2) / shat**2) - (8 / 27) * uhat**2 / (shat * that)
     term2 = (4 / 9) * ((shat**2 + that**2) / uhat**2 + (uhat**2 + that**2) / shat**2) - (8 / 27) * that**2 / (shat * uhat)
     return term1 + term2
-
 
 def subprocess_combinations(subprocess):
     # To get possible incoming IDs for each case with the ME
@@ -393,7 +385,6 @@ def subprocess_combinations(subprocess):
 
     return combinations
 
-
 QuarkIDs = [1, 2, 3, 4, 5] #, 6]                             # d, u, s, c, b, t --- Quark PDG IDs
 QuarkMasses = [0.0047, 0.0022, 0.096, 1.27, 4.18] #, 173.0]  # approximate MSbar masses (in GeV), we are in massless limit
 
@@ -404,7 +395,6 @@ def get_quark_mass(PDG_ID):
         return QuarkMasses[QuarkIDs.index(abs_id)]
     return 0.0 
 
-        
 def PartonOutIDs(MSquaredFunc, ID1, ID2):
     # Outgoing quarks for 2->2
     if MSquaredFunc == M2_gg_gg:                # (1) gg → gg
@@ -448,7 +438,6 @@ def PartonOutIDs(MSquaredFunc, ID1, ID2):
     else:
         raise ValueError("Unknown matrix element function")
 
-
 def random_quark_pair():
     q = random.choice(QuarkIDs)
     return [q, -q]
@@ -474,11 +463,9 @@ def random_qqxqpqpx_ids():
     return [q, -q, qp, -qp]
 
 
-
 #=========================================================
 #======================= ID MAPS =========================
 #=========================================================
-
 IDmap_2to2 = {
     # Parton ID maps for 2->2 processes. Doesn't use any of the random choice above
     "gg_gg":       [ ("gg_gg", lambda ids: ids[:4]) ],
@@ -494,7 +481,6 @@ IDmap_2to2 = {
     "qqx_qqx":     [ ("qqx_qqx",lambda ids: ids[:4]) ],
     "qqx_qpqpx":   [ ("qqx_qpqpx", lambda ids: ids[:4]) ],
 }
-
 
 IDmap_2to3 = {
     #Parton ID maps for 2->3 processes. 
@@ -567,7 +553,6 @@ IDmap_2to3 = {
         ("qqx_qpqpxg", lambda incoming: incoming[:2] + random_new_quark_pair(incoming[:2]) + [21]),
     ], 
 }
-
 
 IDmap_2to4 = {
     #Parton ID maps for 2->4 processes. 
@@ -667,7 +652,6 @@ IDmap_2to4 = {
         ("qqx_qpqpxoox", lambda incoming: incoming[:2] + random_new_quark_pair(incoming[:2]) + random_new_quark_pair(incoming[:2])),
     ],
 }
-
 
 IDmap_2to5 = {
     #Parton ID maps for 2->5 processes. 
@@ -777,11 +761,9 @@ IDmap_2to5 = {
 }
 
 
-
 #=================================================================
 #=================== COLOUR FLOW HELPER  =========================
 #=================================================================
-
 def parse_flows(file_path):
     # Look into colour flow folder and get all with weights
     flows = []  # Each item: (weight, [(a,b), (c,d), ...])
@@ -804,7 +786,6 @@ def parse_flows(file_path):
     
     return flows
 
-
 def select_weighted_flow(flows):
     # Select colour flow based on weight
     # flows = [(weight, [(a,b), (c,d), ...]), ...]
@@ -817,7 +798,6 @@ def select_weighted_flow(flows):
         if r <= cumulative:
             return pairs
         
-
 def assign_ids_from_colourflow(chosen_colour_flow, FullIDs):
     # Assign/reorder PDG IDs to match the colour-flow pattern.
     # chosen_colour_flow: list of tuples [(c1,c2), ...]
@@ -863,13 +843,10 @@ def assign_ids_from_colourflow(chosen_colour_flow, FullIDs):
 
     return FullIDs_from_flow
     
-    
 
 #=================================================================
 #========================= QCD FUNCTIONS =========================
 #=================================================================
-
-
 def QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
     # Get QCD differential cross section for integration
     Y, y = parameters
@@ -935,11 +912,9 @@ def QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
 
     return convol, xa, xb
 
-
 def convolution(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
     result, _, _ = QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc)
     return result
-
 
 def xs_and_colour(MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2, outIDs=None, maxTries=2000):
     # Get (xa, xb, ID1, ID2, outIDs, Y, y) for a single event 
@@ -960,7 +935,6 @@ def xs_and_colour(MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2,
             return xa, xb, ID1, ID2, outIDs, RandomY, Randomy
 
     raise Exception(f"Failed to sample kinematics after {maxTries} tries.")
-
 
 def QCD_envelope(parameters, M, ID1, ID2, s, MSquaredFunc):
     Y, y = parameters
@@ -1003,7 +977,6 @@ def subprocess_envelopes(M, yMax, s, MC, all_subprocesses, subprocess_combinatio
 
     return envelope_maxes
 
-
 def subprocess_xsecs(M, yMax, s, MC, Subprocesses, subprocess_combinations, PDF, MinMass, MaxMass):
     # Calculate the cross section of each process and general info
     tau = M**2 / s
@@ -1026,11 +999,18 @@ def subprocess_xsecs(M, yMax, s, MC, Subprocesses, subprocess_combinations, PDF,
 
     return cross_sections, process_info
 
+def pseudorapidity(p):
+    px, py, pz = p[1], p[2], p[3]
+    p_mag = np.sqrt(px**2 + py**2 + pz**2)
+
+    if p_mag == abs(pz):
+        return np.sign(pz) * np.inf
+
+    return 0.5 * np.log((p_mag + pz) / (p_mag - pz))
 
 #=======================================================================
 #========================= GENERATE EVENTS =============================
 #=======================================================================
-
 def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params, dirs, process_map):
     # Generate QCD or massless phase space events using CoM dynamics 
     # Boosts to lab frame and store in LHE files 
@@ -1237,7 +1217,23 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
                 fail_count += 1
                 continue
                 
-            # Append only if the boost works and only in the lab frame (LHE are only lab frame events)
+            # First two particles are incoming; only cut outgoing particles
+            outgoing_lab = full_event_Lab[2:]
+
+            eta_values = np.array([
+                pseudorapidity(p) for p in outgoing_lab
+            ])
+
+            if np.any(~np.isfinite(eta_values)):
+                fail_count += 1
+                continue
+
+            if np.any(np.abs(eta_values) >= yMax):
+                fail_count += 1
+                continue
+
+            # Append only if the boost works and only in the lab frame (LHE are only lab frame events) 
+            # and event has less than yMax for eta cut 
             eventsLab.append((
                 full_event_Lab, xa, xb, M, ID1, ID2, FullIDs_from_flow,
                 InteractionIndex, lprup, selected_process, chosen_colour_flow
@@ -1286,13 +1282,10 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
     return results
 
 
-    
 #=======================================================================
 #================================ LHE WRITE ============================
 #=======================================================================
-
 # Later (if I remember): add something that changes the pre-amble at the top of the LHE files per gen
-
 def WriteLHE(events, file_name, s, PDF, cross_sections, lprup_by_index=None):
     # Get info from generation and put it into proper LHE format
     # cross_sections: list of tuples (xsec, error, max_weight, lprup)
@@ -1364,11 +1357,9 @@ def WriteLHE(events, file_name, s, PDF, cross_sections, lprup_by_index=None):
         fh.write("</LesHouchesEvents>\n")
 
 
-
 #=====================================================================
 #============================== OUTPUT ===============================
 #=====================================================================
-
 pretty_names_2to2 = {
     "gg_gg":       "gg → gg",
     "gg_qqx":      "gg → qq̄",
@@ -1383,7 +1374,6 @@ pretty_names_2to2 = {
     "qxqx_qxqx":   "q̄q̄ → q̄q̄",
     "qqx_qqx":     "qq̄ → qq̄",
 }
-
 
 pretty_names_2to3 = {
 
@@ -1430,7 +1420,6 @@ pretty_names_2to3 = {
     # (12) qq̄ → qq̄
     "qqx_qqxg":     "qq̄ → qq̄g",
 }
-
 
 pretty_names_2to4 = {
     # (1) gg → gg
@@ -1502,7 +1491,6 @@ pretty_names_2to4 = {
     "qqx_qqxqqx":     "qq̄ → qq̄qq̄",
     "qqx_qqxqpqpx":   "qq̄ → qq̄q'q̄'",
 }
-
 
 pretty_names_2to5 = {
 
