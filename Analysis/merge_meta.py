@@ -14,8 +14,8 @@ import sys
 # =================================================
 RAID_AREA = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
 
-DEFAULT_ENERGY_FOLDER = "TeV13p0_QCD_qxqx2qxqx_22000"
-DEFAULT_PROCESS = "2to2"
+DEFAULT_ENERGY_FOLDER = "TeV13p0_110_eta"
+DEFAULT_PROCESS = "2to4"
 DEFAULT_DR_SCALES = [11.0]
 
 

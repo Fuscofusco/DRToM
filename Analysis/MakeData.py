@@ -9,7 +9,7 @@ import numpy as np
 # CONFIG
 # =================================================
 
-energy_folder = "TeV13p0_110_eta"
+energy_folder = "TeV13p0_22000"
 base_path = f"/raid/adisk06/users/fuscomus/DRToM/LHEF/{energy_folder}"
 
 outgoing_parton = 4  
@@ -17,7 +17,7 @@ what_process = f"2to{outgoing_parton}"
 Start = 2.0
 End = 11.0
 Step = 0.1
-DR_scale = 11.0
+DR_scale = 2.0
 
 # =================================================
 # Regex to parse folder names

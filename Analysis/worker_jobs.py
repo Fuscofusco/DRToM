@@ -14,20 +14,20 @@ import DimensionalReduction as dr
 # =================================================
 out_base = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
 
-energy_folder = "TeV13p0_110_eta"
+energy_folder = "TeV13p0_22000"
 what_process = "2to4"
 Start = 2.0
 End = 11.0
 Step = 0.1
-DR_scale = "11.0"
-# DR_scale = "3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0"
+# DR_scale = "2.0, 11.0"
+DR_scale = "3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0"
 
 # CHOOSE WHAT TO DO. A disabled section is not computed, held in memory, or written to disk.
-collect_kinematics = True
+collect_kinematics = False
 collect_event_shapes = True
 collect_masses = True
-collect_meta = True
-collect_xa_xb = True
+collect_meta = False
+collect_xa_xb = False
 
 
 # =================================================

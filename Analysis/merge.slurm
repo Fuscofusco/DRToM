@@ -12,6 +12,6 @@ conda activate DRToM
 
 # Pass the SLURM array task id as the index into DR_scales
 python3 merge_meta.py \
-    --energy-folder "TeV13p0_110_eta" \
+    --energy-folder "TeV13p0_22000" \
     --process 2to4 \
-    --dr 11.0
+    --dr 2.0,11.0

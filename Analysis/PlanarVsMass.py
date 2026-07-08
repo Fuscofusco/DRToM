@@ -16,7 +16,7 @@ analysis_base = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
 
 energy_folder = "TeV13p0_22000"
 what_process = "2to4"
-frame_choice = "CoM"  # "lab" or "CoM"
+frame_choice = "lab"  # "lab" or "CoM"
 
 base_dir = os.path.join(
     analysis_base,
