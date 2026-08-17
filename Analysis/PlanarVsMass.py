@@ -16,7 +16,7 @@ analysis_base = "/raid/adisk06/users/fuscomus/DRToM/Analysis"
 
 energy_folder = "TeV13p0_22000"
 what_process = "2to4"
-frame_choice = "lab"  # "lab" or "CoM"
+frame_choice = "CoM"  # "lab" or "CoM"
 
 base_dir = os.path.join(
     analysis_base,
@@ -30,7 +30,19 @@ Mmin = 2.0
 Mmax = 11.0
 
 # Number of mass bins on the plot.
-bins = 30
+mass_bin_width = 0.1  # TeV
+
+mass_edges = np.arange(
+    Mmin,
+    Mmax + mass_bin_width,
+    mass_bin_width,
+)
+
+mass_centers = 0.5 * (
+    mass_edges[:-1] + mass_edges[1:]
+)
+
+bins = len(mass_edges) - 1
 
 # Stored masses are in GeV.
 GeV2TeV = 1.0e-3
@@ -51,7 +63,6 @@ A_cut = 0.5 / hist_bin_cut
 def get_task_id(path):
     """
     Extract the task number from a filename such as:
-
         part_0.pkl
         part_17.pkl
     """
@@ -430,8 +441,9 @@ cb_palette = [
     "#0072B2",  # blue
     "#D55E00",  # vermillion
     "#CC79A7",  # reddish purple
-    "#999999",  # gray
+    # "#999999",  # gray
     "#6A3D9A",  # deep purple
+    "#A65628",  # Reddish brown
 ]
 
 colors = [
@@ -449,7 +461,8 @@ markers = [
     "<",
     "p",
     "X",
-    "*",
+    "*"
+    # "h"
 ]
 
 
@@ -596,10 +609,13 @@ for idx, (DR_scale, DR_dir) in enumerate(DR_pairs):
     # =================================================
     # DRAW THIS DR SCALE
     # =================================================
-    label = (
-        fr"$\Lambda_3 = {DR_scale:.1f}\,"
-        fr"\mathrm{{TeV}}$"
-    )
+    if DR_scale == 11.0:
+        label = "SM"
+    else:
+        label = (
+            fr"$\Lambda_3 = {DR_scale:.1f}\,"
+            fr"\mathrm{{TeV}}$"
+        )   
 
     color = colors[idx]
     marker = markers[idx % len(markers)]
@@ -653,7 +669,7 @@ for idx, (DR_scale, DR_dir) in enumerate(DR_pairs):
 plot_settings = [
     (
         ax_B,
-        fr"fraction ($B > {B_cut:.2f}$)",
+        fr"Fraction ($B > {B_cut:.2f}$)",
     ),
     (
         ax_A,
@@ -731,7 +747,7 @@ if handles:
         handles,
         labels,
         loc="lower center",
-        ncol=5,
+        ncol=6,
         bbox_to_anchor=(0.5, -0.02),
         frameon=False,
     )

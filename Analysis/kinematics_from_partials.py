@@ -56,6 +56,17 @@ DIFFERENCE_VARIABLES = [
     "delta_phi",
 ]
 
+# For these variables, mode="All" is an event-level momentum sum rather than
+# a concatenation of the individual outgoing partons.  Their shared plotting
+# ranges must therefore be obtained from the individual-parton modes.
+MOMENTUM_SUM_VARIABLES = {
+    "momentum",
+    "pt",
+    "px",
+    "py",
+    "pz",
+}
+
 # Fixed histogram widths in the displayed units.
 BIN_WIDTHS = {
     "energy": 0.05,
@@ -176,14 +187,23 @@ def finite_array(values):
     return array[np.isfinite(array)]
 
 
+# def modes_for_process(process):
+#     if process in {"2to2", "2to2_QCD"}:
+#         return ["All", "Leading", "Subleading"]
+
+#     if process == "2to4":
+#         return ["All", "Leading", "Subleading", "Tertiary", "Last"]
+
+#     return ["All"]
+
 def modes_for_process(process):
     if process in {"2to2", "2to2_QCD"}:
-        return ["All", "Leading", "Subleading"]
+        return ["Leading", "Subleading"]
 
     if process == "2to4":
-        return ["All", "Leading", "Subleading", "Tertiary", "Last"]
+        return ["Leading", "Subleading", "Tertiary", "Last"]
 
-    return ["All"]
+    return ["Leading"]
 
 
 def parse_csv_choices(text, allowed, option_name):
@@ -353,12 +373,43 @@ def calculate_chunk(dr_module, four_momentum_chunk, mode):
     # diff_momentum returns momentum-like quantities in GeV. Convert all
     # displayed energy/momentum variables to TeV before range finding and
     # histogramming so both axes use the requested TeV units.
+    # energy = finite_array(energy_list) / 1000.0
+    # momentum = finite_array(momentum_list) / 1000.0
+    # pt = finite_array(pt_list) / 1000.0
+    # px = finite_array(px_list) / 1000.0
+    # py = finite_array(py_list) / 1000.0
+    # pz = finite_array(pz_list) / 1000.0
+
     energy = finite_array(energy_list) / 1000.0
-    momentum = finite_array(momentum_list) / 1000.0
-    pt = finite_array(pt_list) / 1000.0
-    px = finite_array(px_list) / 1000.0
-    py = finite_array(py_list) / 1000.0
-    pz = finite_array(pz_list) / 1000.0
+
+    if mode == "All":
+        # One vector-summed value per event.
+        px = np.asarray(
+            [np.sum(event_px) for event_px in px_list],
+            dtype=float,
+        ) / 1000.0
+
+        py = np.asarray(
+            [np.sum(event_py) for event_py in py_list],
+            dtype=float,
+        ) / 1000.0
+
+        pz = np.asarray(
+            [np.sum(event_pz) for event_pz in pz_list],
+            dtype=float,
+        ) / 1000.0
+
+        # Magnitudes of the summed momentum vectors.
+        pt = np.sqrt(px**2 + py**2)
+        momentum = np.sqrt(px**2 + py**2 + pz**2)
+
+    else:
+        # One value per event for Leading, Subleading, etc.
+        momentum = finite_array(momentum_list) / 1000.0
+        pt = finite_array(pt_list) / 1000.0
+        px = finite_array(px_list) / 1000.0
+        py = finite_array(py_list) / 1000.0
+        pz = finite_array(pz_list) / 1000.0
 
     eta = finite_array(eta_per_event)
     theta = finite_array(theta_per_event)
@@ -487,10 +538,12 @@ def determine_ranges(
     dr_module,
     event_chunk_size,
     progress_every,
+    modes,
 ):
     """
-    Mode='All' contains every selected jet, so its ranges also cover
-    Leading/Subleading/Tertiary/Last. This avoids a full range pass per mode.
+    Use mode='All' for variables that still contain concatenated parton
+    values.  For the five momentum variables whose 'All' values are event
+    sums, obtain the common range from the individual-parton modes instead.
     """
     variable_ranges = initialize_ranges(VARIABLES)
     difference_ranges = initialize_ranges(DIFFERENCE_VARIABLES)
@@ -511,13 +564,19 @@ def determine_ranges(
             records,
             event_chunk_size,
         ):
-            values, differences = calculate_chunk(
+            all_values, differences = calculate_chunk(
                 dr_module,
                 chunk,
-                mode="All",
+                mode="All", # Want to keep this at All so that the ranges are good 
+                # mode="Leading",
             )
 
-            for variable, array in values.items():
+            # Energy and angular quantities retain their original inclusive
+            # (concatenated) meaning under mode="All".
+            for variable, array in all_values.items():
+                if variable in MOMENTUM_SUM_VARIABLES:
+                    continue
+
                 update_range(
                     variable_ranges[variable],
                     array,
@@ -529,7 +588,28 @@ def determine_ranges(
                     array,
                 )
 
-            del values
+            # The near-zero event sums must not determine the range shared by
+            # the ordinary parton curves.  Use all requested non-All modes.
+            for mode in modes:
+                if mode == "All":
+                    continue
+
+                mode_values, mode_differences = calculate_chunk(
+                    dr_module,
+                    chunk,
+                    mode=mode,
+                )
+
+                for variable in MOMENTUM_SUM_VARIABLES:
+                    update_range(
+                        variable_ranges[variable],
+                        mode_values[variable],
+                    )
+
+                del mode_values
+                del mode_differences
+
+            del all_values
             del differences
             del chunk
 
@@ -974,6 +1054,18 @@ OVERLAY_INFO_BOX_LAYOUT = {
 }
 
 
+# Positions for the normal overlay plots.
+OVERLAY_INFO_BOX_LAYOUT_QCD = {
+    variable: {
+        "x": 0.50,
+        "y": 0.03,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "bottom",
+    }
+    for variable in ["energy", "momentum"]
+}
+
+
 DIFFERENCE_INFO_BOX_LAYOUT = {
     # Top right.
     "delta_eta": {
@@ -996,10 +1088,19 @@ DIFFERENCE_INFO_BOX_LAYOUT = {
 }
 
 
-def add_overlay_legend(axis, variable):
+def add_overlay_legend(axis, variable, process_type):
     """
     Position the overlay legends so that they do not overlap the info boxes.
     """
+    if process_type == "QCD" and variable in {"energy", "momentum"}:
+        axis.legend(
+            loc="lower center",
+            bbox_to_anchor=(0.50, 0.27),
+            fontsize=label_fontsize,
+            frameon=False,
+        )
+        return
+
     if variable == "cos_theta":
         # Top, slightly left of the middle.
         axis.legend(
@@ -1016,6 +1117,7 @@ def add_overlay_legend(axis, variable):
             fontsize = label_fontsize,
             frameon = False,
         )
+
 
     else:
         axis.legend(
@@ -1071,6 +1173,17 @@ def plot_variable_overlay(
     configure_variable_y_axis(axis, variable)
     configure_axis_ticks(axis, variable)
 
+    # The All curve for these variables is a momentum-conservation residual.
+    # Mark the conserved value without changing the common plot range.
+    # if variable in {"px", "py", "pz", "pt", "momentum"}:
+    #     axis.axvline(
+    #         0.0,
+    #         color="0.35",
+    #         linestyle="--",
+    #         linewidth=1.2,
+    #         zorder=0,
+    #     )
+
     axis.grid(
         True,
         linestyle="--",
@@ -1078,14 +1191,24 @@ def plot_variable_overlay(
     )
 
     # Add the requested information box.
-    box_layout = OVERLAY_INFO_BOX_LAYOUT.get(
-        variable,
-        {
-            "x": 0.97,
-            "y": 0.97,
-            "horizontal_alignment": "right",
-        },
-    )
+    if process_type == "QCD" and variable in {"energy", "momentum"}:
+        box_layout = OVERLAY_INFO_BOX_LAYOUT_QCD.get(
+            variable,
+            {
+                "x": 0.97,
+                "y": 0.97,
+                "horizontal_alignment": "right",
+            },
+        )
+    else:
+        box_layout = OVERLAY_INFO_BOX_LAYOUT.get(
+            variable,
+            {
+                "x": 0.97,
+                "y": 0.97,
+                "horizontal_alignment": "right",
+            },
+        )
 
     add_info_box(
         axis=axis,
@@ -1097,7 +1220,7 @@ def plot_variable_overlay(
     )
 
     if plotted:
-        add_overlay_legend(axis, variable)
+        add_overlay_legend(axis, variable, process_type)
 
     figure.tight_layout()
 
@@ -1575,6 +1698,7 @@ def main():
             dr_module=dr_module,
             event_chunk_size=args.event_chunk_size,
             progress_every=args.progress_every,
+            modes=modes,
         )
 
         (

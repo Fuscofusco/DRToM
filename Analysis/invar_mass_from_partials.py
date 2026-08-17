@@ -312,6 +312,7 @@ def add_info_box(
             rf"$\sqrt{{s}} = {energy}$ TeV",
             rf"$gg \to gg$",
             rf"$| \eta | < 4$",
+            f"CTEQ6L1",
         ]
     else:
         lines = [
@@ -319,6 +320,7 @@ def add_info_box(
             rf"$\sqrt{{s}} = {energy}$ TeV",
             rf"{dimensionality}, ${process_label}$",
             rf"$| \eta | < 4$",
+            f"CTEQ6L1",
         ]
 
     axis.text(
@@ -439,12 +441,12 @@ def parse_args():
     parser.add_argument(
         "--bins",
         type=int,
-        default=90,
+        default=100,
     )
     parser.add_argument(
         "--x-min",
         type=float,
-        default=2.0,
+        default=1.0,
         help="Displayed lower x limit in TeV",
     )
     parser.add_argument(
@@ -528,11 +530,12 @@ def main():
         args.progress_every,
     )
 
-    edges = np.linspace(
-        mass_min,
-        mass_max,
-        args.bins + 1,
-    )
+    # edges = np.linspace(
+    #     mass_min,
+    #     mass_max,
+    #     args.bins + 1,
+    # )
+    edges = np.linspace(1000.0, 11000.0, 101)
 
     histogram = second_pass(
         files,
@@ -591,6 +594,9 @@ def main():
     axis.set_xlabel("Invariant Mass [TeV]")
     axis.set_ylabel("Cross Section [pb /  0.1 TeV]")
     axis.set_xlim(args.x_min, args.x_max)
+    axis.set_xticks(
+        np.arange(args.x_min, args.x_max + 1.0, 1.0)
+    )
     axis.set_yscale("log")
 
     style_axis(axis)
@@ -711,6 +717,9 @@ def main():
         axis.set_xlabel("Invariant Mass [TeV]")
         axis.set_ylabel("Normalized dσ/dM / 0.1 TeV ")
         axis.set_xlim(args.x_min, args.x_max)
+        axis.set_xticks(
+            np.arange(args.x_min, args.x_max + 1.0, 1.0)
+        )
         axis.set_yscale("log")
         axis.grid(True, which="both", linestyle="--", alpha=0.5)
         axis.legend()

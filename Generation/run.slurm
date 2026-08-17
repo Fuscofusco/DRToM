@@ -3,6 +3,7 @@
 #SBATCH --output=logs/%A_%a.out
 #SBATCH --error=logs/%A_%a.err
 
+
 # #SBATCH --nodelist=thuner-gw32,thuner-gw34  # Run only on these nodes 
 # #SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35
 # #SBATCH --cpus-per-task=8  # This was stopping the use of all the nodes running at the same time. Don't use it!!!

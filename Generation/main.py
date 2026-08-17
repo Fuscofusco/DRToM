@@ -110,7 +110,7 @@ def get_dsid(dsid_map, dim, window_name):
 # =====================
 if __name__ == "__main__":
 
-    DSID_MAP_PATH = "/hepusers2/fuscomus/DRToM/DSID/dsid_map_0.1.json"
+    DSID_MAP_PATH = "/hepusers2/fuscomus/DRToM/DSID/dsid_map_0.1_2to11.json"
 
     with open(DSID_MAP_PATH, "r") as f:
         dsid_map = json.load(f)

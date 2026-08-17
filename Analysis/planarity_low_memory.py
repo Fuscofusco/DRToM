@@ -613,20 +613,31 @@ def plot_correlations(
         f"{spearman_rho:.4f} (p = {spearman_p:.3e})"
     )
 
-    total = np.sum(accumulator.ab_counts)
-    bin_area = (
-        np.diff(accumulator.a2d_edges)[:, None]
-        * np.diff(accumulator.b2d_edges)[None, :]
-    )
+    # total = np.sum(accumulator.ab_counts)
+    # bin_area = (
+    #     np.diff(accumulator.a2d_edges)[:, None]
+    #     * np.diff(accumulator.b2d_edges)[None, :]
+    # )
 
-    density = np.divide(
+    # density = np.divide(
+    #     accumulator.ab_counts,
+    #     total * bin_area,
+    #     out=np.zeros_like(
+    #         accumulator.ab_counts,
+    #         dtype=float,
+    #     ),
+    #     where=(total > 0) & (bin_area > 0),
+
+    total = np.sum(accumulator.ab_counts)
+
+    fraction = np.divide(
         accumulator.ab_counts,
-        total * bin_area,
+        total,
         out=np.zeros_like(
             accumulator.ab_counts,
             dtype=float,
         ),
-        where=(total > 0) & (bin_area > 0),
+        where=(total > 0),
     )
 
     # --------------------------------------------------------
@@ -634,11 +645,36 @@ def plot_correlations(
     # --------------------------------------------------------
     fig, ax = plt.subplots(figsize=(7, 6))
 
+    from matplotlib.colors import LogNorm
+
+    # Hide empty bins so they appear white instead of dark purple.
+    # density_masked = np.ma.masked_less_equal(density.T, 0)
+    # positive_density = density[density > 0]
+    fraction_masked = np.ma.masked_less_equal(fraction.T, 0)
+    positive_fraction = fraction[fraction > 0]
+
+    # mesh = ax.pcolormesh(
+    #     accumulator.a2d_edges,
+    #     accumulator.b2d_edges,
+    #     density_masked,
+    #     shading="auto",
+    #     cmap="viridis",
+    #     norm=LogNorm(
+    #         vmin=np.min(positive_density),
+    #         vmax=np.max(positive_density),
+    #     ),
+    # )
+
     mesh = ax.pcolormesh(
         accumulator.a2d_edges,
         accumulator.b2d_edges,
-        density.T,
+        fraction_masked,
         shading="auto",
+        cmap="viridis",
+        norm=LogNorm(
+            vmin=np.min(positive_fraction),
+            vmax=np.max(positive_fraction),
+        ),
     )
 
     cbar = fig.colorbar(
@@ -646,7 +682,7 @@ def plot_correlations(
         ax=ax,
     )
     cbar.set_label(
-        "Density",
+        "Fraction of Events / bin",
         fontsize=FONT_SIZE,
     )
     configure_colorbar(cbar)

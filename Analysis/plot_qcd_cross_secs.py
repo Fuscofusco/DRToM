@@ -492,6 +492,8 @@ def add_info_box(
         rf"$\sqrt{{s}} =$ 13 TeV",
         r"$2 \to 2$",
         r"$|\eta| < 4$",
+        f"CTEQ6L1"
+
     ]
 
     return axis.text(
@@ -642,7 +644,7 @@ def make_plot(process_results):
     add_info_box(
         axis=axis,
         x=0.95,
-        y=0.8,
+        y=0.7,
         horizontal_alignment="right",
         vertical_alignment="bottom",
     )

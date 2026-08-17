@@ -9,21 +9,20 @@ import numpy as np
 # CONFIG
 # =================================================
 
-energy_folder = "TeV13p0_22000"
+energy_folder = "TeV13p0_22000_0724"
 base_path = f"/raid/adisk06/users/fuscomus/DRToM/LHEF/{energy_folder}"
 
 outgoing_parton = 4  
 what_process = f"2to{outgoing_parton}" 
-Start = 2.0
+Start = 1.0
 End = 11.0
 Step = 0.1
-DR_scale = 2.0
+DR_scale = 10.0
 
 # =================================================
 # Regex to parse folder names
 # =================================================
-# Example:
-# mc23_13p0TeV....STRPy8EG_STR_2D_O2_L_020_U_021.evgen.TXT.e0000
+# Example: mc23_13p0TeV....STRPy8EG_STR_2D_O2_L_020_U_021.evgen.TXT.e0000
 pattern = re.compile(
     r"_(?P<dim>2D|3D)_(?P<proc>O\d+).*?_L_(?P<low>\d+)_U_(?P<high>\d+)"
 )

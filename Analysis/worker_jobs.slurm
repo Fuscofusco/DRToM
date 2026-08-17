@@ -2,7 +2,7 @@
 #SBATCH --job-name=pkl
 #SBATCH --output=logs/pkl/%A_%a.out
 #SBATCH --error=logs/pkl/%A_%a.err
-#SBATCH --array=1-45         # How many files then divide by 10 (files_per_task). Can be kept large to avoid constant chaning.
+#SBATCH --array=1-55         # How many files then divide by 10 (files_per_task). Can be kept large to avoid constant chaning.
 
 # #SBATCH --nodelist=thuner-gw32,thuner-gw34  
 # #SBATCH --exclude=thuner-gw31,thuner-gw32,thuner-gw34,thuner-gw35

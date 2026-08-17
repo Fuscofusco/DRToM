@@ -1,8 +1,8 @@
 import json
 
-Start = 2.0       # Starting TeV energy of generation
+Start = 0.5       # Starting TeV energy of generation
 End = 11.0        # Ending TeV energy of generation 
-Step = 1.0        # Step size in TeV 
+Step = 0.1        # Step size in TeV 
 Dimensionality = [2, 3]
 
 # Setting this so that each can have upto 500 unique DSIDs

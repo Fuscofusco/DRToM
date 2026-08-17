@@ -22,21 +22,9 @@ PDF = lhapdf.mkPDF(PDFSet, 0)
 MC = 5
 
 
-#============================================================
-#====================== BASELINE FUNCTIONS ==================
-#============================================================
-def Integrate(Func,args,N,a,b,x):
-    # Double integral
-    value = 0
-    for i in range(1,N+1):
-        Y = a+((i-(1/2))*((b-a)/N))
-        c = -(x - np.fabs(Y))
-        d = x - np.fabs(Y)
-        for j in range(1,N+1):
-            y = c+((j-(1/2))*((d-c)/N))
-            params = [Y,y]
-            value += ((b-a)/N)*((d-c)/N)*Func(params,*args)
-    return value
+#============================================================================
+#========================= OUTGOING KINEMATICS ==============================
+#============================================================================
 
 def boost(gamma, beta, p):
     # Lorentz boost
@@ -57,11 +45,6 @@ def boost(gamma, beta, p):
         E = np.sqrt(np.dot(P,P)) 
 
     return np.concatenate(([E], P))
-
-
-#============================================================================
-#========================= OUTGOING KINEMATICS ==============================
-#============================================================================
 
 def phase2(N, M, debug=False):
     # 2D phase space generator with N massless momenta
@@ -842,11 +825,24 @@ def assign_ids_from_colourflow(chosen_colour_flow, FullIDs):
             FullIDs_from_flow.append(0)
 
     return FullIDs_from_flow
-    
+
 
 #=================================================================
 #========================= QCD FUNCTIONS =========================
 #=================================================================
+def Integrate(Func,args,N,a,b,x):
+    # Double integral
+    value = 0
+    for i in range(1,N+1):
+        Y = a+((i-(1/2))*((b-a)/N))
+        c = -(x - np.fabs(Y))
+        d = x - np.fabs(Y)
+        for j in range(1,N+1):
+            y = c+((j-(1/2))*((d-c)/N))
+            params = [Y,y]
+            value += ((b-a)/N)*((d-c)/N)*Func(params,*args)
+    return value
+
 def QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
     # Get QCD differential cross section for integration
     Y, y = parameters
@@ -864,7 +860,12 @@ def QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc):
     if xa <= 0 or xb <= 0 or xa > 1.0 or xb > 1.0:
         raise ValueError(f"Invalid momentum fractions: xa={xa}, xb={xb}, Y={Y}, tau={tau}")
 
-    alpha3 = 1.0 / (1.0 / 0.118 + 7.0 / (2.0 * np.pi) * np.log(PDFScale / 91.2))
+    # use the CTEQ6L1 coupling value which only has 5 active quarks 
+    alpha3 = 1.0 / (
+    1.0 / 0.130
+    + (23.0 / 3.0) / (2.0 * np.pi)
+      * np.log(PDFScale / 91.2)
+    )
     g3 = np.sqrt(max(0.0, 4.0 * np.pi * alpha3))
 
     shat = M**2
@@ -916,25 +917,166 @@ def convolution(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc)
     result, _, _ = QCD(parameters, M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc)
     return result
 
-def xs_and_colour(MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2, outIDs=None, maxTries=2000):
-    # Get (xa, xb, ID1, ID2, outIDs, Y, y) for a single event 
+def find_qcd_envelope(
+    MinMass, MaxMass, M, s, yMax, PDF, MSquaredFunc, ID1, ID2,
+    n_scan=75, safety_factor=1.5
+):
+    """Find an acceptance--rejection envelope for one selected channel.
+
+    The generator first samples Y uniformly and then samples y uniformly
+    within its Y-dependent allowed interval.  That proposal is not uniform
+    per unit area in (Y, y), so the rejection target is
+
+        G(Y, y) = (yMax - abs(Y)) * QCD(Y, y).
+
+    The constant factors in the proposal density cancel in rejection
+    sampling and therefore do not need to be included.
+    """
+    if n_scan < 1:
+        raise ValueError(f"n_scan must be positive, received {n_scan}")
+    if safety_factor <= 1.0:
+        raise ValueError(
+            f"safety_factor must be greater than 1, received {safety_factor}"
+        )
+
+    tau = M**2 / s
+    if tau <= 0.0 or tau >= 1.0:
+        raise ValueError(f"Invalid tau={tau} for M={M} and s={s}")
+
+    Ymax_M = min(np.log(1.0 / np.sqrt(tau)), yMax)
+    if Ymax_M <= 0.0:
+        raise ValueError(f"No allowed Y range for M={M}: Ymax_M={Ymax_M}")
+
+    maximum_value = 0.0
+    maximum_point = None
+    delta_Y = (2.0 * Ymax_M) / n_scan
+
+    # Scan midpoint values across the same region used by event generation.
+    for i in range(n_scan):
+        Y = -Ymax_M + (i + 0.5) * delta_Y
+        y_limit = yMax - abs(Y)
+
+        if y_limit <= 0.0:
+            continue
+
+        delta_y = (2.0 * y_limit) / n_scan
+
+        for j in range(n_scan):
+            y = -y_limit + (j + 0.5) * delta_y
+
+            amplitude, _, _ = QCD(
+                [Y, y], M, ID1, ID2, s, PDF,
+                MinMass, MaxMass, MSquaredFunc
+            )
+            corrected_amplitude = y_limit * amplitude
+
+            if not np.isfinite(corrected_amplitude):
+                raise RuntimeError(
+                    "Non-finite corrected QCD amplitude during envelope scan: "
+                    f"G={corrected_amplitude}, F={amplitude}, "
+                    f"M={M}, Y={Y}, y={y}, ID1={ID1}, ID2={ID2}"
+                )
+            if corrected_amplitude < 0.0:
+                raise RuntimeError(
+                    "Negative corrected QCD amplitude during envelope scan: "
+                    f"G={corrected_amplitude}, F={amplitude}, "
+                    f"M={M}, Y={Y}, y={y}, ID1={ID1}, ID2={ID2}"
+                )
+
+            if corrected_amplitude > maximum_value:
+                maximum_value = corrected_amplitude
+                maximum_point = (Y, y)
+
+    if maximum_value <= 0.0 or maximum_point is None:
+        raise RuntimeError(
+            "Could not find a positive QCD envelope: "
+            f"M={M}, ID1={ID1}, ID2={ID2}"
+        )
+
+    return safety_factor * maximum_value, maximum_point, Ymax_M
+
+
+def xs_and_colour(
+    MinMass, MaxMass, M, s, yMax, PDF, MC, MSquaredFunc, ID1, ID2,
+    outIDs=None, maxTries=2000, envelope_scan_points=75,
+    envelope_safety_factor=1.5
+):
+    """Generate (xa, xb, IDs, Y, y) for one selected channel."""
+    if outIDs is None:
+        outIDs = PartonOutIDs(MSquaredFunc, ID1, ID2)
+
+    MaximumAmplitude, scanned_maximum_point, Ymax_M = find_qcd_envelope(
+        MinMass=MinMass,
+        MaxMass=MaxMass,
+        M=M,
+        s=s,
+        yMax=yMax,
+        PDF=PDF,
+        MSquaredFunc=MSquaredFunc,
+        ID1=ID1,
+        ID2=ID2,
+        n_scan=envelope_scan_points,
+        safety_factor=envelope_safety_factor
+    )
+
     for _ in range(maxTries):
-        if outIDs is None:
-            outIDs = PartonOutIDs(MSquaredFunc, ID1, ID2)
+        # Match the reference generator: sample Y first, then sample y from
+        # the allowed interval at that particular Y.
+        RandomY = np.random.uniform(
+            -Ymax_M + 1.0e-9,
+            Ymax_M - 1.0e-9
+        )
+        y_limit = yMax - abs(RandomY)
 
-        tau = M**2 / s
-        Ymax_M = min(np.log(1 / np.sqrt(tau)), yMax)
-        RandomY = np.random.uniform(-Ymax_M + 1e-9, Ymax_M - 1e-9)
-        Randomy = np.random.uniform(-(yMax - abs(RandomY)), yMax - abs(RandomY))
+        if y_limit <= 0.0:
+            continue
 
-        MaximumAmplitude, _, _ = QCD([0, 0], M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc)
-        MaximumAmplitude *= 1.2
-        ActualAmplitude, xa, xb = QCD([RandomY, Randomy], M, ID1, ID2, s, PDF, MinMass, MaxMass, MSquaredFunc)
+        Randomy = np.random.uniform(-y_limit, y_limit)
 
-        if np.random.uniform(0.0, MaximumAmplitude) < ActualAmplitude:
+        ActualAmplitude, xa, xb = QCD(
+            [RandomY, Randomy], M, ID1, ID2, s, PDF,
+            MinMass, MaxMass, MSquaredFunc
+        )
+
+        # Correct for the changing width of the conditional y proposal.
+        CorrectedAmplitude = y_limit * ActualAmplitude
+
+        if not np.isfinite(CorrectedAmplitude):
+            raise RuntimeError(
+                "Non-finite corrected QCD amplitude: "
+                f"G={CorrectedAmplitude}, F={ActualAmplitude}, "
+                f"M={M}, Y={RandomY}, y={Randomy}, "
+                f"ID1={ID1}, ID2={ID2}"
+            )
+        if CorrectedAmplitude < 0.0:
+            raise RuntimeError(
+                "Negative corrected QCD amplitude: "
+                f"G={CorrectedAmplitude}, F={ActualAmplitude}, "
+                f"M={M}, Y={RandomY}, y={Randomy}, "
+                f"ID1={ID1}, ID2={ID2}"
+            )
+
+        # A finite scan can miss a narrow peak.  Stop instead of silently
+        # accepting events with an invalid envelope.
+        if CorrectedAmplitude > MaximumAmplitude:
+            raise RuntimeError(
+                "Acceptance-rejection envelope violated: "
+                f"G={CorrectedAmplitude}, H={MaximumAmplitude}, "
+                f"F={ActualAmplitude}, M={M}, Y={RandomY}, y={Randomy}, "
+                f"ID1={ID1}, ID2={ID2}, "
+                f"scanned maximum point={scanned_maximum_point}. "
+                "Increase envelope_scan_points or envelope_safety_factor."
+            )
+
+        random_height = np.random.uniform(0.0, MaximumAmplitude)
+
+        if random_height < CorrectedAmplitude:
             return xa, xb, ID1, ID2, outIDs, RandomY, Randomy
 
-    raise Exception(f"Failed to sample kinematics after {maxTries} tries.")
+    raise RuntimeError(
+        f"Failed to sample kinematics after {maxTries} tries for "
+        f"M={M}, ID1={ID1}, ID2={ID2}."
+    )
 
 def QCD_envelope(parameters, M, ID1, ID2, s, MSquaredFunc):
     Y, y = parameters
@@ -1034,8 +1176,8 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
     active_names = [name for name, (_, _, _, active) in process_map.items() if active]
 
-    M_ref = 0.5 * (MinMass + MaxMass)
-    envelope_maxes = subprocess_envelopes(M_ref, yMax, s, MC, active_names, subprocess_combinations, PDF)
+    # M_ref = 0.5 * (MinMass + MaxMass)
+    # envelope_maxes = subprocess_envelopes(M_ref, yMax, s, MC, active_names, subprocess_combinations, PDF)
     
     # Bookkeeping 
     N_subproc      = [0]*len(active_names)   # Counts events per subprocess
@@ -1080,9 +1222,9 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 
             env_index = active_names.index(interaction_name)
 
-            RCrossSection = random.uniform(0, envelope_maxes[env_index])
-            if RCrossSection > CrossSections[InteractionIndex]:
-                continue
+            # RCrossSection = random.uniform(0, envelope_maxes[env_index])
+            # if RCrossSection > CrossSections[InteractionIndex]:
+            #     continue
                 
             # 4) Sample kinematics
             xa, xb, ID1, ID2, outIDs, RandomY, Randomy = xs_and_colour(
@@ -1250,7 +1392,7 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
         except Exception as e:
             print(f"[ERROR] Event attempt failed: {e}")
             fail_count += 1
-            break
+            continue 
 
     # Only include active processes
     active_processes = [(name, folder, ME, lprup) 
@@ -1262,13 +1404,65 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
     for i, (name, folder, ME, lprup) in enumerate(active_processes):
         if N_subproc[i] > 0:
             xsec = Weight_subproc[i]
-            err  = math.sqrt(Error_subproc[i]) / N_events
+            err  = math.sqrt(Error_subproc[i])
         else:
             xsec, err = 0.0, 0.0
         CrossSections_list.append((xsec, err, 0.0, lprup))
 
+    # Create metadata for LHE file 
+    metadata = {
+        "GeneratorVersion": (
+            "1.0",
+            "DRToM generator version"
+        ),
+        "MinMass": (
+            f"{MinMass:.1f}",
+            "Minimum generated invariant mass (GeV)"
+        ),
+        "MaxMass": (
+            f"{MaxMass:.1f}",
+            "Maximum generated invariant mass (GeV)"
+        ),
+        "yMax": (
+            yMax,
+            "Maximum absolute final-state rapidity"
+        ),
+        "Npartons": (
+            Npartons,
+            "Number of outgoing partons"
+        ),
+        "Dimensionality": (
+            dimensionality,
+            "Selected phase-space dimensionality"
+        ),
+        "GenerationMode": (
+            output_type,
+            "QCD or phase-space kinematics"
+        ),
+        "IntegrationGrid": (
+            f"{MC} x {MC}",
+            "Midpoint integration grid"
+        ),
+        "AcceptedEvents": (
+            accepted_count,
+            "Number of accepted events"
+        ),
+        "FailedAttempts": (
+            fail_count,
+            "Number of failed event attempts"
+        )
+    }
+
     # Write LHE files
-    WriteLHE(eventsLab, dirs['lab_file'], s, PDF, CrossSections_list, lprup_by_index)
+    WriteLHE(
+        events=eventsLab,
+        file_name=dirs["lab_file"],
+        s=s,
+        PDF=PDF,
+        cross_sections=CrossSections_list,
+        metadata=metadata,
+        lprup_by_index=lprup_by_index
+    )
 
     print(f"✔ Finished {min_mass_TeV:.2f}–{max_mass_TeV:.2f} TeV | "
           f"Events: {accepted_count} | Failures: {fail_count}")
@@ -1276,7 +1470,7 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
     results = {
         "interaction_counter": interaction_counter,
         "full_process_counter": full_process_counter,
-        "cross_sections": CrossSections_list  # now holds all xsec + error
+        "cross_sections": CrossSections_list  
     }
     
     return results
@@ -1286,7 +1480,7 @@ def generate_events(dimensionality, min_mass_TeV, max_mass_TeV, N_events, params
 #================================ LHE WRITE ============================
 #=======================================================================
 # Later (if I remember): add something that changes the pre-amble at the top of the LHE files per gen
-def WriteLHE(events, file_name, s, PDF, cross_sections, lprup_by_index=None):
+def WriteLHE(events, file_name, s, PDF, cross_sections, metadata=None, lprup_by_index=None):
     # Get info from generation and put it into proper LHE format
     # cross_sections: list of tuples (xsec, error, max_weight, lprup)
     # lprup_by_index: list mapping InteractionIndex -> lprup (int)
@@ -1298,8 +1492,101 @@ def WriteLHE(events, file_name, s, PDF, cross_sections, lprup_by_index=None):
     IDWTUP = 3
     NPRUP = len(cross_sections)
 
+    metadata = metadata or {}
+
     with open(file_name, "w") as fh:
         fh.write("<LesHouchesEvents version=\"1.0\">\n")
+
+        # ============================================================
+        # Generator header
+        # ============================================================
+
+        fh.write("<header>\n")
+        fh.write("<!--\n")
+        fh.write("  File written by DRToM\n")
+        fh.write("  Dimensional Reduction Toy Model Monte Carlo event generator\n")
+        fh.write("\n")
+        fh.write("  Generator authors:\n")
+        fh.write("  Nicholas Fusco-Mushinski and Douglas M. Gingrich\n")
+        fh.write("\n")
+        fh.write("  Run parameters:\n")
+
+        # Values that can be determined directly in this function.
+        fh.write(
+            f"  {np.sqrt(s):<14.6g} "
+            f"{'COME':<22} "
+            f"Hadronic CoM energy (GeV)\n"
+        )
+
+        fh.write(
+            f"  {len(events):<14} "
+            f"{'Number':<22} "
+            f"Number of events written\n"
+        )
+
+        # fh.write(
+        #     f"  {getattr(PDF, 'setname', 'Unknown')!s:<14} "
+        #     f"{'PDFSet':<22} "
+        #     f"LHAPDF set\n"
+        # )
+
+        fh.write(
+            f"  {PDFSUP:<14} "
+            f"{'PDFSetID':<22} "
+            f"LHAPDF set identifier\n"
+        )
+
+        fh.write(
+            f"  {'Q = M':<14} "
+            f"{'PDFScale':<22} "
+            f"Event-dependent factorization scale\n"
+        )
+
+        fh.write(
+            f"  {'Q = M':<14} "
+            f"{'CouplingScale':<22} "
+            f"Event-dependent strong-coupling scale\n"
+        )
+
+        fh.write(
+            f"  {'Q = M':<14} "
+            f"{'SCALUP':<22} "
+            f"Event-dependent LHE shower scale\n"
+        )
+
+        # Write any additional user-supplied metadata.
+        if metadata:
+            fh.write("\n")
+            fh.write("  Additional generation parameters:\n")
+
+            for key, value in metadata.items():
+
+                # Allow entries of the form:
+                # "MinMass": (2000.0, "Minimum invariant mass (GeV)")
+                if isinstance(value, tuple) and len(value) == 2:
+                    parameter_value, description = value
+                else:
+                    parameter_value = value
+                    description = ""
+
+                # XML comments cannot contain "--".
+                safe_key = str(key).replace("--", "-")
+                safe_value = str(parameter_value).replace("--", "-")
+                safe_description = str(description).replace("--", "-")
+
+                fh.write(
+                    f"  {safe_value:<14} "
+                    f"{safe_key:<22} "
+                    f"{safe_description}\n"
+                )
+
+        fh.write("-->\n")
+        fh.write("</header>\n")
+
+        # ============================================================
+        # LHE initialization block
+        # ============================================================
+
         fh.write("<init>\n")
         fh.write(f"{IDBMUP} {IDBMUP} {EBMUP} {EBMUP} "
                  f"{PDFGUP} {PDFGUP} {PDFSUP} {PDFSUP} {IDWTUP} {NPRUP}\n")
@@ -1318,16 +1605,17 @@ def WriteLHE(events, file_name, s, PDF, cross_sections, lprup_by_index=None):
             outIDs = FullIDs[2:]
             NUP = 2 + len(outIDs)
             XWGTUP = 1.0
-            PDFScale = 1000
+            PDFScale = M
+            SCALUP = M 
             QED = 1 / 126.5
-            alpha_s = 0.1
+            alpha_s = 1.0 / ( 1.0 / 0.118 + 7.0 / (2.0 * np.pi) * np.log(PDFScale / 91.2) )
             StatusMother = -1
             StatusDaughter = 1
             MotherOne, MotherTwo = 1, 2
             IP = lprup
 
             fh.write("<event>\n")
-            fh.write(f"{NUP} {IP} {XWGTUP} {PDFScale} {QED} {alpha_s}\n")
+            fh.write(f"{NUP} {IP} {XWGTUP} {SCALUP} {QED} {alpha_s}\n")
 
             # Incoming particles
             fh.write("{} {} 0 0 {} {} {: e} {: e} {: e} {: e} 0 0 9\n".format(
